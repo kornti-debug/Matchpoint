@@ -7,17 +7,53 @@ app.use(cors());
 app.use(express.json());
 
 
-const homeRoutes = require('./routes/home.routes')
-app.use('/api',homeRoutes)
+const bodyParser = require('body-parser');
+const cookieParser = require('cookie-parser');
 
-app.get('/', (req,res) => {
-    res.json({message: 'Hello World!'})
-})
+// Load environment variables and external services
+require('bcrypt');
+require('./services/database');        // Connect to MySQL database
 
-app.get('/test', (req,res) => {
-    res.send('test World!')
-})
+// Middleware to handle cookies and incoming request bodies
+app.use(cookieParser());
+app.use(bodyParser.json()); // Parse JSON request bodies
+app.use(bodyParser.urlencoded({ extended: true })); // Parse form data
 
+
+
+// Route imports
+const indexRouter = require('./routes/index');
+const usersRouter = require('./routes/users');
+const errorRouter = require('./routes/error');
+const authRouter = require('./routes/auth');
+
+
+
+const { errorHandler } = require('./middlewares/error-handler.middleware');
+const { extractUserFromToken } = require('./middlewares/extract-from-jwt.middleware');
+
+// Custom middleware to extract user data from JWT token in cookie
+app.use(extractUserFromToken);
+
+// Set template variables globally for authentication & admin state
+app.use((req, res, next) => {
+    res.locals.isAuthenticated = !!req.profile; // true if user is logged in
+    res.locals.isAdmin = req.profile && req.profile.role === 'admin';
+    next();
+});
+
+// Mount routers to paths
+app.use('/', indexRouter);
+app.use('/users', usersRouter);
+app.use('/api/auth', authRouter);
+
+// Error handling middleware (for thrown or next(err) errors)
+app.use(errorHandler);
+app.use(errorRouter); // Catch-all for unhandled routes (404 etc.)
+
+
+
+// Start the server
 app.listen(port, () => {
-    console.log(`http://localhost:${port}`)
-})
+    console.log(`Example app listening at http://localhost:${port}`);
+});

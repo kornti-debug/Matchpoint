@@ -1,5 +1,6 @@
 import {use, useState} from "react";
 import {useNavigate} from "react-router-dom";
+import * as apiService from "../services/apiService.js";
 
 
 function HomePage(){
@@ -7,6 +8,7 @@ function HomePage(){
     const [user, setUser] = useState('')
     const [password, setPassword] = useState('')
     const [error, setError] = useState('')
+    const navigate = useNavigate()
 
     const handleLogin = async (e) => {
         e.preventDefault()
@@ -15,7 +17,7 @@ function HomePage(){
             const data = await apiService.login(user,password)
             localStorage.setItem('token', data.token)
             navigate('/dashboard')
-        } catch {
+        } catch (error) {
             setError(error.message)
         }
 
