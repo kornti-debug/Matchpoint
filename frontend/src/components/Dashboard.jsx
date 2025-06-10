@@ -12,7 +12,7 @@ function Dashboard(){
     const handleCreateMatch = () => {
 
         console.log(createMatchName)
-        navigate('/MatchLobby');
+        navigate('/lobby');
     }
 
     const handleJoinMatch = () => {

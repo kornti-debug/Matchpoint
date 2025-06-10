@@ -5,8 +5,8 @@ import * as apiService from "../services/apiService.js";
 
 function HomePage(){
 
-    const [user, setUser] = useState('')
-    const [password, setPassword] = useState('')
+    const [user, setUser] = useState('ironman@iron.com')
+    const [password, setPassword] = useState('ironmann')
     const [error, setError] = useState('')
     const navigate = useNavigate()
 
@@ -48,7 +48,7 @@ function HomePage(){
                             onChange={(e) => setUser(e.target.value)}
                             required
                             className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                            placeholder="username"
+                            placeholder="ironman@iron.com"
                         />
                     </div>
 
@@ -63,7 +63,7 @@ function HomePage(){
                             onChange={(e) => setPassword(e.target.value)}
                             required
                             className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                            placeholder="Enter your password"
+                            placeholder="ironmann"
                         />
                     </div>
 
