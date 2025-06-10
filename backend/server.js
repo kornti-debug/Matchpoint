@@ -53,7 +53,7 @@ app.use(errorRouter); // Catch-all for unhandled routes (404 etc.)
 
 
 
-// Start the server
+// Start the backend
 app.listen(port, () => {
     console.log(`Example app listening at http://localhost:${port}`);
 });
