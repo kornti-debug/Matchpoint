@@ -26,7 +26,6 @@ function HomePage(){
 
     return(
         <div className="min-h-screen bg-gray-900 text-gray-100 flex items-center justify-center px-4">
-            <h1>welcome</h1>
             <div className="max-w-md w-full bg-gray-800 rounded-lg shadow-xl p-8">
 
                 <h2 className="text-3xl font-bold text-center text-white mb-8">Login</h2>
