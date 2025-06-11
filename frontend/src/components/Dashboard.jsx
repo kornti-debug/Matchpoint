@@ -1,5 +1,6 @@
 import {useState} from "react";
-import {useNavigate} from "react-router-dom";
+import {Link, useNavigate} from "react-router-dom";
+import * as apiService from "../services/apiService.js";
 
 
 
@@ -9,19 +10,51 @@ function Dashboard(){
     const [joinMatchName, setJoinMatchName] = useState("")
     const navigate = useNavigate();
 
-    const handleCreateMatch = () => {
+    const handleCreateMatch = async () => {
+        try {
+            const result = await apiService.createMatch();
+            if (result.success) {
+                // Navigate to host lobby with the room code
+                navigate(`/match/${result.roomCode}/host`);
+            }
+        } catch (error) {
+            alert('Failed to create match: ' + error.message);
+        }
+    };
 
-        console.log(createMatchName)
-        navigate('/lobby');
+    const handleJoinMatch = async () => {
+        try {
+            const result = await apiService.joinMatch(joinMatchName);
+            if (result.success) {
+                // Navigate to player lobby
+                navigate(`/match/${joinMatchName}/player`);
+            }
+        } catch (error) {
+            alert('Failed to join match: ' + error.message);
+        }
+    };
+
+    const handleLogout = () => {
+        localStorage.removeItem('token');
+        navigate('/');
+
     }
 
-    const handleJoinMatch = () => {
-
-        console.log(joinMatchName)
-    }
 
     return(
         <div className="min-h-screen bg-gray-900 text-gray-100">
+            <button
+                onClick={handleLogout}
+                className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition duration-200"
+            >
+                Logout
+            </button>
+            <Link
+                to="/profile"
+                className="inline-block bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-8 rounded-lg transition duration-200 transform hover:scale-105"
+            >
+                Profile
+            </Link>
     <h1 className="text-5xl font-bold text-gray-400 mb-6">
         Dashboard
     </h1>

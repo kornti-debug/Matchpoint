@@ -1,11 +1,12 @@
 import {useState} from "react";
 import {useNavigate} from "react-router-dom";
+import {Link} from "react-router-dom";
 import * as apiService from "../services/apiService.js";
 
 
 function HomePage(){
 
-    const [user, setUser] = useState('ironman@iron.com')
+    const [user, setUser] = useState('Tony23')
     const [password, setPassword] = useState('ironmann')
     const [error, setError] = useState('')
     const navigate = useNavigate()
@@ -15,6 +16,7 @@ function HomePage(){
         setError('')
         try{
             const data = await apiService.login(user,password)
+            console.log(data)
             localStorage.setItem('token', data.token)
             navigate('/dashboard')
         } catch (error) {
@@ -66,6 +68,12 @@ function HomePage(){
                             placeholder="ironmann"
                         />
                     </div>
+                    <Link
+                        to="/register"
+                        className="inline-block bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-8 rounded-lg transition duration-200 transform hover:scale-105"
+                    >
+                        register
+                    </Link>
 
                     <button
                         type="submit"

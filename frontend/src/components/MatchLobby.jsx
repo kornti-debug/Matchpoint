@@ -13,13 +13,13 @@ const player = [
     {id:3, name:"fraunz"}
 ]
 
-/*const gameTypes = [
+const gameTypes = [
     {type: "quiz games"},
     {type: "real life games"},
     {type: "mixed games"},
-]*/
+]
 
-//const equipment = ["dice", "playing cards"]
+const equipment = ["dice", "playing cards"]
 
 const handleMatchName = () => {
 
@@ -80,26 +80,25 @@ return(
         >
             {copySuccess ? 'Copied!' : 'Copy'}
         </button>
-        <div >
-        <div className="bg-gray-800" >
+        <div className="flex">
+        <div className="bg-gray-800 w-32" >
             <label htmlFor="players" className="block text-sm font-medium text-gray-300 mb-2">
                 Players
             </label>
             {player.map((player) => (<p key={player.id}>{player.name}</p>))}
 
         </div>
-        <div className="bg-gray-800">
+        <div className="bg-gray-800 w-32">
             <label htmlFor="gameType" className="block text-sm font-medium text-gray-300 mb-2">
                 Game Type
             </label>
-            <p> classic game</p>
-            <p> quiz game</p>
-            <p> reallife game</p>
+            {gameTypes.map((gameTypes) => (<p>{gameTypes.type}</p>))}
         </div>
-        <div className="bg-gray-800">
+        <div className="bg-gray-800 w-32">
             <label htmlFor="equipment" className="block text-sm font-medium text-gray-300 mb-2">
                 Equipment needed
             </label>
+            {equipment.map((equipment) => (<p>{equipment}</p>))}
         </div>
         </div>
         <button onClick={handleStartMatch} className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-lg transition duration-200">

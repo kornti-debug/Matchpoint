@@ -9,20 +9,20 @@ if (!ACCESS_TOKEN_SECRET) {
 }
 
 // Login: verify user and issue JWT token
-async function authenticateUser({ email, password }, users, res) {
+async function authenticateUser({ username, password }, users, res) {
     console.log('=== AUTHENTICATION SERVICE ===');
-    console.log('Looking for email:', email);
-    console.log('Available users:', users.map(u => ({ id: u.id, email: u.email })));
+    console.log('Looking for user:', username);
+    console.log('Available users:', users.map(u => ({ id: u.id, username: u.username })));
 
-    const user = users.find(user => user.email === email); // Find user by email
+    const user = users.find(user => user.username === username); // Find user by email
 
     // CHECK IF USER EXISTS FIRST
     if (!user) {
-        console.log('User not found with email:', email);
+        console.log('User not found with username:', username);
         return res.status(401).json({ message: 'Invalid credentials' }); // Changed to JSON
     }
 
-    console.log('User found:', { id: user.id, email: user.email });
+    console.log('User found:', { id: user.id, username: user.username });
 
     const passwordMatches = await bcrypt.compare(password, user.password); // Compare passwords
     console.log('Password matches:', passwordMatches);
@@ -35,9 +35,7 @@ async function authenticateUser({ email, password }, users, res) {
         // Create JWT token with user data
         const accessToken = jwt.sign({
             id: user.id,
-            name: user.name,
-            surname: user.surname,
-            role: user.role,
+            username: user.username,
         }, ACCESS_TOKEN_SECRET, { expiresIn: '1h' });
 
         // FOR API: Return JSON instead of redirect
@@ -46,9 +44,7 @@ async function authenticateUser({ email, password }, users, res) {
             token: accessToken,
             user: {
                 id: user.id,
-                name: user.name,
-                surname: user.surname,
-                role: user.role
+                username: username
             }
         });
 

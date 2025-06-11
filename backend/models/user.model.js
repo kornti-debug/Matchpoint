@@ -63,11 +63,10 @@ const updateUser = async (userData) => {
 
 // Create a new user in the database
 let createUser = (userData) => new Promise((resolve, reject) => {
+    console.log(userData)
     // Prepare SQL with escaped values to prevent SQL injection
-    let sql = "INSERT INTO users (name, surname, email, password) VALUES (" +
-        db.escape(userData.name) + ", " +
-        db.escape(userData.surname) + ", " +
-        db.escape(userData.email) + ", " +
+    let sql = "INSERT INTO users (username, password) VALUES (" +
+        db.escape(userData.username) + ", " +
         db.escape(userData.password) + ")";
 
     // Execute insert query
