@@ -12,7 +12,7 @@ function Dashboard(){
 
     const handleCreateMatch = async () => {
         try {
-            const result = await apiService.createMatch();
+            const result = await apiService.createMatch(createMatchName);
             if (result.success) {
                 // Navigate to host lobby with the room code
                 navigate(`/match/${result.roomCode}/host`);

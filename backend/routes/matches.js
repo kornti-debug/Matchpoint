@@ -1,9 +1,7 @@
 const express = require('express');
 const router = express.Router();
-const matchController = require('../controllers/matchController');
-const authService = require('../services/authentication');
+const matchController = require('../controllers/match.controller');
 
-router.use(authService.authenticateJWT);
 
 // Create new match
 router.post('/', matchController.createMatch);

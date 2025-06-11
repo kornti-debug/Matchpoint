@@ -2,6 +2,7 @@ const matchModel = require('../models/match.model');
 
 const createMatch = async (req, res) => {
     try {
+        console.log("HALALAL", req.body)
         const hostId = req.user.id;
         const match = await matchModel.createMatch(hostId);
 
@@ -17,6 +18,7 @@ const createMatch = async (req, res) => {
 
 const joinMatch = async (req, res) => {
     try {
+        console.log("HOLOLOLO", req.body)
         const userId = req.user.id;
         const { roomCode } = req.params;
 

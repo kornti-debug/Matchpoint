@@ -1,4 +1,4 @@
-const db = require('../config/database'); // Your database connection
+const db = require('../services/database'); // Your database connection
 
 // Create a new match
 const createMatch = (hostId) => new Promise((resolve, reject) => {

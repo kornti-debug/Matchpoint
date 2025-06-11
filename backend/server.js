@@ -26,6 +26,7 @@ const indexRouter = require('./routes/index');
 const usersRouter = require('./routes/users');
 const errorRouter = require('./routes/error');
 const authRouter = require('./routes/auth');
+const matchesRouter = require('./routes/matches')
 
 
 
@@ -46,6 +47,7 @@ app.use((req, res, next) => {
 app.use('/', indexRouter);
 app.use('/users', usersRouter);
 app.use('/api/auth', authRouter);
+app.use('/api/matches', matchesRouter)
 
 // Error handling middleware (for thrown or next(err) errors)
 app.use(errorHandler);
