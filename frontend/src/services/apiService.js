@@ -45,14 +45,15 @@ export const register = async (username, password) => {
     }
 };
 
-export const createMatch = async (createMatchName) => {
+export const createMatch = async (matchName) => {
     try {
+        console.log("haha",matchName)
         const response = await fetch(`${API_URL}/matches`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${localStorage.getItem('token')}`
-            },body: JSON.stringify(createMatchName)
+            },body: JSON.stringify({matchName})
         });
 
         if (!response.ok) {

@@ -2,9 +2,9 @@ const matchModel = require('../models/match.model');
 
 const createMatch = async (req, res) => {
     try {
-        console.log("HALALAL", req.body)
         const hostId = req.user.id;
-        const match = await matchModel.createMatch(hostId);
+        const matchName = req.body.matchName
+        const match = await matchModel.createMatch(matchName,hostId);
 
         res.json({
             success: true,

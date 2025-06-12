@@ -58,6 +58,7 @@ async function authenticateUser({ username, password }, users, res) {
 function authenticateJWT(req, res, next) {
     let token = req.headers.authorization;
 
+
     if (!token) {
         return res.status(401).send('no token'); // Redirect if no token
     }

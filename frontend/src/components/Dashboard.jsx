@@ -6,13 +6,13 @@ import * as apiService from "../services/apiService.js";
 
 function Dashboard(){
 
-    const [createMatchName, setCreateMatchName] = useState("")
+    const [matchName, setMatchName] = useState("")
     const [joinMatchName, setJoinMatchName] = useState("")
     const navigate = useNavigate();
 
     const handleCreateMatch = async () => {
         try {
-            const result = await apiService.createMatch(createMatchName);
+            const result = await apiService.createMatch(matchName);
             if (result.success) {
                 // Navigate to host lobby with the room code
                 navigate(`/match/${result.roomCode}/host`);
@@ -64,8 +64,8 @@ function Dashboard(){
             <input
                 id="matchName"
                 type="text"
-                value={createMatchName}
-                onChange={(e) => setCreateMatchName(e.target.value)}
+                value={matchName}
+                onChange={(e) => setMatchName(e.target.value)}
                 className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 placeholder="match name"
             />
