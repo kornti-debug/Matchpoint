@@ -15,7 +15,7 @@ const createMatch = async (req, res) => {
         res.status(500).json({ error: 'Failed to create match' });
     }
 };
-
+/*
 const joinMatch = async (req, res) => {
     try {
         console.log("HOLOLOLO", req.body)
@@ -38,9 +38,9 @@ const joinMatch = async (req, res) => {
         console.error('Join match error:', error);
         res.status(400).json({ error: error.message });
     }
-};
+};*/
 
 module.exports = {
     createMatch,
-    joinMatch
+
 };

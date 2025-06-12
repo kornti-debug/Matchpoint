@@ -56,17 +56,21 @@ async function authenticateUser({ username, password }, users, res) {
 
 // Middleware: verify JWT from cookies
 function authenticateJWT(req, res, next) {
-    const token = req.cookies.accessToken;
+    let token = req.headers.authorization;
 
     if (!token) {
-        return res.redirect('/auth/login'); // Redirect if no token
+        return res.status(401).send('no token'); // Redirect if no token
+    }
+
+    if (token.startsWith('Bearer ')) {
+        token = token.slice(7, token.length);
     }
 
     if (token) {
         console.log("authenticateJWT");
         jwt.verify(token, ACCESS_TOKEN_SECRET, (err, user) => {
             if (err) {
-                return res.redirect('/auth/login'); // Redirect if token is invalid/expired
+                return res.status(401).send('invalid token'); // Redirect if token is invalid/expired
             }
             req.user = user; // Attach user data to request
             next(); // Continue to next middleware/route
