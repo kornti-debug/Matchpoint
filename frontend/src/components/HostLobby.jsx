@@ -14,6 +14,7 @@ function HostLobby(){
     const [matchDetails, setMatchDetails] = useState({})
     const [matchName, setMatchName] = useState("");
     const [copySuccess, setCopySuccess] = useState(false)
+    const [ws, setWs] = useState(null)
     const navigate = useNavigate()
 
 
@@ -33,8 +34,39 @@ function HostLobby(){
         }
     }
 
+    const startWebsocket = () => {
+        const ws = new WebSocket('ws://localhost:8080');
+
+        ws.onopen = () => {
+            console.log('Connected to server');
+            setWs(ws)
+        };
+
+        ws.onmessage = (event) => {
+            console.log('Message from server:', event.data);
+        };
+
+        ws.onclose = () => {
+            console.log('Disconnected from server');
+        };
+
+        // Cleanup on component unmount
+        return () => ws.close();
+    }
+
+    const testMessage = () => {
+        if(ws) {
+            ws.send(JSON.stringify({
+                type: 'join_room',
+                roomCode: roomCode
+            }))
+        }
+    }
+
+
     useEffect(() => {
         fetchMatch()
+        startWebsocket()
     }, []);
 
 
@@ -153,6 +185,9 @@ function HostLobby(){
             </div>
             <button onClick={handleStartMatch} className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-lg transition duration-200">
                 Start Match
+            </button>
+            <button onClick={testMessage} className="bg-green-500 hover:bg-green-600 text-white px-6 py-3 rounded-lg">
+                Test Message
             </button>
         </div>
     )
