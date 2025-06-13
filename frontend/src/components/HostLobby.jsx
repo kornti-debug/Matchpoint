@@ -2,48 +2,53 @@ import {useEffect, useState} from "react";
 import {useParams} from "react-router-dom";
 import websocketService from "../services/websocketService.js";
 import {useNavigate} from "react-router-dom";
+import * as apiService from "../services/apiService.js"
 
 
 function HostLobby(){
 
     const {roomCode} = useParams()
     const [players, setPlayers] = useState([])
-    const [gameStarted, setGameStarted] = useState(false)
-    const [matchName, setMatchName] = useState("room123");
+    const [isLoading, setIsLoading] = useState(false)
+    const [error, setError] = useState('')
+    const [matchDetails, setMatchDetails] = useState({})
+    const [matchName, setMatchName] = useState("");
     const [copySuccess, setCopySuccess] = useState(false)
     const navigate = useNavigate()
 
 
-    useEffect(() => {
+    const fetchMatch = async () => {
+        setIsLoading(true)
+        setError('')
+        try{
+            const data = await apiService.getMatchDetails(roomCode)
+            setMatchDetails(data.match)
+            console.log("haha", data.match.matchname)
+            setMatchName(data.match.matchname)
+            console.log("hihi",matchName)
+        } catch (error) {
+            setError(error.message)
+        } finally {
+            setIsLoading(false)
+        }
+    }
 
+    useEffect(() => {
+        fetchMatch()
     }, []);
 
-    /*useEffect(() => {
-        //connect to websocket
-        websocketService.connect(roomCode, 'host')
 
-        //Listen for Websocket messages
-        const handleWebSocketMessage = (event) => {
-            const data = event.detail;
-
-            switch(data.type){
-                case 'player_joined':
-                    setPlayers(prev => [...prev, data.player])
-                    break;
-                case 'player_left':
-                    setPlayers(prev => prev.filter(p => p.id !== data.playerId))
-            }
+    const updateMatchName = async (roomCode) => {
+        setIsLoading(true)
+        setError('')
+        try {
+            await apiService.updateMatchName(roomCode, matchName)
+        } catch (error) {
+            setError(error.message)
+        } finally {
+            setIsLoading(false)
         }
-
-    window.addEventListener('websocket-message', handleWebSocketMessage)
-
-        return () =>{
-            websocketService.disconnect()
-            window.removeEventListener('websocket-message', handleWebSocketMessage)
-        }
-
-    },[roomCode])
-*/
+    }
 
     const player = [
         {id:1, name:"herbert"},
@@ -59,8 +64,9 @@ function HostLobby(){
 
     const equipment = ["dice", "playing cards"]
 
-    const handleMatchName = () => {
-
+    const handleMatchName = async (e) => {
+        e.preventDefault()
+        await updateMatchName(roomCode);
     }
 
     const handleCopyCode = () => {
@@ -75,6 +81,9 @@ function HostLobby(){
         })
         navigate(`/match/${roomCode}/game`)
     }
+
+    if (isLoading) return <div>Loading users...</div>
+    if (error) return <div style={{ color: 'red' }}>{error}</div>
 
     return(
         <div className="min-h-screen bg-gray-900 text-gray-100">

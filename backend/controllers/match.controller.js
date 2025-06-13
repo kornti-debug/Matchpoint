@@ -15,6 +15,39 @@ const createMatch = async (req, res) => {
         res.status(500).json({ error: 'Failed to create match' });
     }
 };
+
+const getMatchDetails = async (req,res) => {
+    try{
+        const roomCode = req.params.roomCode;
+        const match = await matchModel.getMatchByRoomCode(roomCode);
+
+        res.json({success: true, match})
+    } catch (error) {
+        console.log('get match error:', error)
+        res.status(500).json({error: 'failed to get match details'})
+    }
+}
+
+const updateMatchName = async (req, res) => {
+    try {
+        const roomCode = req.params.roomCode;
+        const { matchName } = req.body;
+
+        // Optional: Check if user is the host
+        const match = await matchModel.getMatchByRoomCode(roomCode);
+        if (match.host_id !== req.user.id) {
+            return res.status(403).json({ error: 'Only the host can update the match' });
+        }
+
+        await matchModel.updateMatchName(roomCode, matchName);
+        res.json({ success: true, message: 'Match name updated successfully' });
+    } catch (error) {
+        console.error('Update match name error:', error);
+        res.status(500).json({ error: 'Failed to update match name' });
+    }
+};
+
+
 /*
 const joinMatch = async (req, res) => {
     try {
@@ -42,5 +75,6 @@ const joinMatch = async (req, res) => {
 
 module.exports = {
     createMatch,
-
+    getMatchDetails,
+    updateMatchName
 };

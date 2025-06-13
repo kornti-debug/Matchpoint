@@ -68,6 +68,58 @@ export const createMatch = async (matchName) => {
     }
 };
 
+export const getMatchDetails = async (roomCode) => {
+    try {
+        const response = await fetch(`${API_URL}/matches/${roomCode}`, {
+            method: 'GET',
+            headers:
+                {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                }
+        })
+
+        if(!response.ok){
+            const errorData = await response.json();
+            throw new Error(errorData.message || `failed to get match with id ${roomCode}`)
+        }
+
+        return await response.json();
+    } catch (error) {
+        console.error('error getting match details:', error);
+        throw error;
+    }
+}
+
+export const updateMatchName = async (roomCode, matchName) => {
+    try {
+        const response = await fetch(`${API_URL}/matches/${roomCode}`, {
+            method: 'PATCH',
+            headers:
+                {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                },
+            body: JSON.stringify({
+                matchName: matchName
+
+            })
+        })
+
+        if(!response.ok){
+            const errorData = await response.json();
+            throw new Error(errorData.message || `failed to update match`)
+        }
+
+        return await response.json();
+    } catch (error) {
+        console.error('error updating match :', error);
+        throw error;
+    }
+}
+
+
+
 export const joinMatch = async (roomCode) => {
     try {
         const response = await fetch(`${API_URL}/matches/${roomCode}/join`, {

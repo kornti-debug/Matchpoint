@@ -7,6 +7,10 @@ router.use(authenticationService.authenticateJWT);
 // Create new match
 router.post('/', matchController.createMatch);
 
+router.route('/:roomCode')
+    .get(matchController.getMatchDetails)
+    .patch(matchController.updateMatchName)
+
 // Join existing match
 //router.post('/:roomCode/join', matchController.joinMatch);
 
