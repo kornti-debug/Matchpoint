@@ -13,7 +13,6 @@ const cookieParser = require('cookie-parser');
 // Load environment variables and external services
 require('bcrypt');
 require('./services/database');        // Connect to MySQL database
-require('./services/websockets')
 
 // Middleware to handle cookies and incoming request bodies
 app.use(cookieParser());

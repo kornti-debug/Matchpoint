@@ -1,196 +1,73 @@
-import {useEffect, useState} from "react";
-import {useParams} from "react-router-dom";
-import websocketService from "../services/websocketService.js";
-import {useNavigate} from "react-router-dom";
-import * as apiService from "../services/apiService.js"
+// components/HostLobby.jsx
+import React, { useState } from 'react';
 
+function HostLobby({ roomCode, matchState, setMatchState, startMatch }) {
+    const [playerName, setPlayerName] = useState('');
 
-function HostLobby(){
+    const handleJoinAsHostPlayer = () => {
+        if (!playerName.trim()) return;
+        const newPlayer = { id: `host-player-${Date.now()}`, name: playerName.trim() };
+        setMatchState(prev => ({
+            ...prev,
+            players: [...prev.players, newPlayer],
+            scores: { ...prev.scores, [newPlayer.id]: 0 } // Initialize score for host-player
+        }));
+        setPlayerName(''); // Clear input
 
-    const {roomCode} = useParams()
-    const [players, setPlayers] = useState([])
-    const [isLoading, setIsLoading] = useState(false)
-    const [error, setError] = useState('')
-    const [matchDetails, setMatchDetails] = useState({})
-    const [matchName, setMatchName] = useState("");
-    const [copySuccess, setCopySuccess] = useState(false)
-    const [ws, setWs] = useState(null)
-    const navigate = useNavigate()
+    };
 
+    return (
+        <div className="bg-gray-800 p-8 rounded-xl shadow-lg w-full max-w-2xl text-center border-2 border-blue-600">
+            <h2 className="text-4xl font-bold mb-4 text-blue-400">Host Lobby: {matchState.matchDetails.matchname}</h2>
+            <p className="text-xl text-gray-300 mb-6">Room Code: <span className="font-mono text-blue-300 text-2xl bg-gray-700 p-2 rounded-md tracking-wider">{roomCode}</span></p>
 
-    const fetchMatch = async () => {
-        setIsLoading(true)
-        setError('')
-        try{
-            const data = await apiService.getMatchDetails(roomCode)
-            setMatchDetails(data.match)
-            console.log("haha", data.match.matchname)
-            setMatchName(data.match.matchname)
-            console.log("hihi",matchName)
-        } catch (error) {
-            setError(error.message)
-        } finally {
-            setIsLoading(false)
-        }
-    }
+            <p className="text-lg text-gray-400 mb-6">Share this code with players to join!</p>
 
-    const startWebsocket = () => {
-        const ws = new WebSocket('ws://localhost:8080');
+            <div className="mb-8">
+                <h3 className="text-2xl font-semibold mb-3 text-white">Players Joined:</h3>
+                {matchState.players.length === 0 ? (
+                    <p className="text-gray-400">No players yet. Waiting...</p>
+                ) : (
+                    <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                        {matchState.players.map(player => (
+                            <li key={player.id} className="bg-gray-700 text-gray-200 p-3 rounded-lg shadow-sm">
+                                {player.name}
+                            </li>
+                        ))}
+                    </ul>
+                )}
+            </div>
 
-        ws.onopen = () => {
-            console.log('Connected to server');
-            setWs(ws)
-        };
-
-        ws.onmessage = (event) => {
-            console.log('Message from server:', event.data);
-        };
-
-        ws.onclose = () => {
-            console.log('Disconnected from server');
-        };
-
-        // Cleanup on component unmount
-        return () => ws.close();
-    }
-
-    const testMessage = () => {
-        if(ws) {
-            ws.send(JSON.stringify({
-                type: 'join_room',
-                roomCode: roomCode
-            }))
-        }
-    }
-
-
-    useEffect(() => {
-        fetchMatch()
-        startWebsocket()
-    }, []);
-
-
-    const updateMatchName = async (roomCode) => {
-        setIsLoading(true)
-        setError('')
-        try {
-            await apiService.updateMatchName(roomCode, matchName)
-        } catch (error) {
-            setError(error.message)
-        } finally {
-            setIsLoading(false)
-        }
-    }
-
-    const player = [
-        {id:1, name:"herbert"},
-        {id:2, name:"fred" },
-        {id:3, name:"fraunz"}
-    ]
-
-    const gameTypes = [
-        {type: "quiz games"},
-        {type: "real life games"},
-        {type: "mixed games"},
-    ]
-
-    const equipment = ["dice", "playing cards"]
-
-    const handleMatchName = async (e) => {
-        e.preventDefault()
-        await updateMatchName(roomCode);
-    }
-
-    const handleCopyCode = () => {
-        navigator.clipboard.writeText(roomCode);
-        setCopySuccess(true); // Always show "copied" state
-        setTimeout(() => setCopySuccess(false), 2000); // Reset after 2 seconds
-    }
-
-    const handleStartMatch = () => {
-        websocketService.sendMessage({
-            type: 'start_game'
-        })
-        navigate(`/match/${roomCode}/game`)
-    }
-
-    if (isLoading) return <div>Loading users...</div>
-    if (error) return <div style={{ color: 'red' }}>{error}</div>
-
-    return(
-        <div className="min-h-screen bg-gray-900 text-gray-100">
-            <h1 className="text-5xl font-bold text-gray-400 mb-6">
-                Match
-            </h1>
-            <label htmlFor="roomName" className="block text-sm font-medium text-gray-300 mb-2">
-                Room Name
-            </label>
-            <input
-                id="roomName"
-                type="text"
-                value={matchName}
-                onChange={(e) => setMatchName(e.target.value)}
-
-                className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder=""
-            />
-
-            <button onClick={handleMatchName} className="bg-yellow-600 hover:bg-yellow-700 text-white px-6 py-3 rounded-lg transition duration-200">
-                Change Name
-            </button>
-
-            <br/>
-            <label htmlFor="name" className="block text-sm font-medium text-gray-300 mb-2">
-                Room Code
-            </label>
-            <input
-                id="name"
-                type="text"
-                value={roomCode}
-                readOnly
-                className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder=""
-            />
+            <div className="mb-8">
+                <h3 className="text-2xl font-semibold mb-3 text-white">Join as a Player (for Host):</h3>
+                <input
+                    type="text"
+                    placeholder="Your Player Name"
+                    value={playerName}
+                    onChange={(e) => setPlayerName(e.target.value)}
+                    className="w-full p-3 mb-4 rounded-lg bg-gray-700 text-white placeholder-gray-400 border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                <button
+                    onClick={handleJoinAsHostPlayer}
+                    className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-6 rounded-lg shadow-md transition duration-300 transform hover:scale-105"
+                >
+                    Add Me as Player
+                </button>
+            </div>
 
             <button
-                onClick={handleCopyCode}
-                className={`px-6 py-3 rounded-lg transition duration-200 font-medium flex items-center gap-2 ${
-                    copySuccess
-                        ? 'bg-green-500 text-white'
-                        : 'bg-red-500 hover:bg-red-600 text-white'
-                }`}
+                onClick={startMatch}
+                disabled={matchState.players.length === 0} // Disable if no players
+                className={`w-full text-white font-bold py-4 px-8 rounded-lg shadow-lg transition duration-300 transform hover:scale-105
+                    ${matchState.players.length === 0 ? 'bg-gray-500 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700'}`}
             >
-                {copySuccess ? 'Copied!' : 'Copy'}
+                Start Match ({matchState.totalGames} Games)
             </button>
-            <div className="flex">
-                <div className="bg-gray-800 w-32" >
-                    <label htmlFor="players" className="block text-sm font-medium text-gray-300 mb-2">
-                        Players
-                    </label>
-                    {player.map((player) => (<p key={player.id}>{player.name}</p>))}
-
-                </div>
-                <div className="bg-gray-800 w-32">
-                    <label htmlFor="gameType" className="block text-sm font-medium text-gray-300 mb-2">
-                        Game Type
-                    </label>
-                    {gameTypes.map((gameTypes) => (<p>{gameTypes.type}</p>))}
-                </div>
-                <div className="bg-gray-800 w-32">
-                    <label htmlFor="equipment" className="block text-sm font-medium text-gray-300 mb-2">
-                        Equipment needed
-                    </label>
-                    {equipment.map((equipment) => (<p>{equipment}</p>))}
-                </div>
-            </div>
-            <button onClick={handleStartMatch} className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-lg transition duration-200">
-                Start Match
-            </button>
-            <button onClick={testMessage} className="bg-green-500 hover:bg-green-600 text-white px-6 py-3 rounded-lg">
-                Test Message
-            </button>
+            {matchState.players.length === 0 && (
+                <p className="text-red-400 mt-2">At least one player must join to start the match.</p>
+            )}
         </div>
-    )
+    );
 }
 
 export default HostLobby;

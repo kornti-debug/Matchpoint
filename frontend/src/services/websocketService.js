@@ -1,4 +1,4 @@
-// services/websocketService.js
+/*// services/websocketService.js
 class WebSocketService {
     constructor() {
         this.socket = null;
@@ -41,4 +41,4 @@ class WebSocketService {
     }
 }
 
-export default new WebSocketService();
+export default new WebSocketService();*/
