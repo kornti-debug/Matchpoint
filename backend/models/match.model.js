@@ -26,7 +26,6 @@ const createMatch = (matchName, hostId) => new Promise((resolve, reject) => {
 });
 
 const getMatchByRoomCode = (roomCode) => new Promise((resolve, reject) => {
-    console.log('Model: Searching for room code:', roomCode);
 
     let sql = "SELECT * FROM matches WHERE room_code = ?";
 
@@ -63,6 +62,26 @@ const updateMatchName = async (roomCode, matchName) => {
     });
 };
 
+const getGameDetails = (gameNumber) => new Promise((resolve, reject) => {
+
+    let sql = "SELECT * FROM games WHERE game_number = ?";
+
+    db.query(sql, [gameNumber], function (err, result) {
+
+        if (err) {
+            console.log('Database error:', err);
+            reject(err);
+        } else if (result.length === 0) {
+            console.log('No game found with gamenumber:', gameNumber);
+            reject(new Error('game not found'));
+        } else {
+            console.log('game found, returning:', result[0]);
+            resolve(result[0]);
+        }
+    });
+});
+
+
 
 // Helper function to generate room code
 const generateRoomCode = () => {
@@ -72,5 +91,6 @@ const generateRoomCode = () => {
 module.exports = {
     createMatch,
     getMatchByRoomCode,
-    updateMatchName
+    updateMatchName,
+    getGameDetails
 };

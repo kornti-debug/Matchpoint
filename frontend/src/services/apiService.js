@@ -296,20 +296,26 @@ const tempMockGameData = {
 
 // Placeholder for fetching game data
 export const getGameData = async (gameNumber) => {
-    console.warn(`API Service: MOCK - getGameData called for game ${gameNumber}. You need to implement this on your backend.`);
-    // Simulate network delay
-    await new Promise(resolve => setTimeout(resolve, 300));
-
-    const data = tempMockGameData[gameNumber];
-    if (data) {
-        return data;
-    } else {
-        // Return a generic game if the number is out of bounds for the mock
-        return {
-            name: `Game ${gameNumber}`,
-            description: `This is a placeholder description for Game ${gameNumber}. Implement the actual game data fetching from your backend.`
-        };
+try{
+    const response = await fetch(`${API_URL}/matches/games/${gameNumber}`,
+        {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${localStorage.getItem('token')}`
+            }
+        });
+    if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to start match');
     }
+    const result = await response.json();
+    console.log("testtest", result.game)
+    return result.game
+    } catch (error){
+    throw error
+}
+
 };
 
 // Placeholder for saving game results

@@ -11,6 +11,7 @@ function GameView({ roomCode, matchState, isHost, submitGameResults, backToScore
         setSelectedWinners([]);
     }, [currentGame]);
 
+    console.log(gameData)
     if (!gameData) {
         return (
             <div className="bg-gray-800 p-8 rounded-xl shadow-lg w-full max-w-xl text-center">
@@ -41,7 +42,7 @@ function GameView({ roomCode, matchState, isHost, submitGameResults, backToScore
             <h2 className="text-4xl font-bold mb-4 text-purple-400 text-center">Game {currentGame} of {totalGames}</h2>
 
             <div className="bg-gray-700 p-6 rounded-lg mb-6 shadow-inner">
-                <h3 className="text-3xl font-semibold mb-3 text-white">{gameData.name || `Unnamed Game ${currentGame}`}</h3>
+                <h3 className="text-3xl font-semibold mb-3 text-white">{gameData.title || `Unnamed Game ${currentGame}`}</h3>
                 <p className="text-gray-300 text-lg leading-relaxed">{gameData.description || "No description provided for this game."}</p>
             </div>
 

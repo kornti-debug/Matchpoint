@@ -11,6 +11,8 @@ router.route('/:roomCode')
     .get(matchController.getMatchDetails)
     .patch(matchController.updateMatchName)
 
+router.get('/games/:gameNumber', matchController.getGameData)
+
 // Join existing match
 //router.post('/:roomCode/join', matchController.joinMatch);
 

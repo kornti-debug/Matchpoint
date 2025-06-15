@@ -91,6 +91,7 @@ function MatchController({ isHost }) {
         try {
             // Fetch data for the first game (Game 1)
             const gameData = await apiService.getGameData(1);
+            console.log("gamedata:", gameData)
             setMatchState(prev => ({
                 ...prev,
                 phase: 'game',          // Transition to game phase

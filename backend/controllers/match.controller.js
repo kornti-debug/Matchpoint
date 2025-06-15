@@ -28,6 +28,18 @@ const getMatchDetails = async (req,res) => {
     }
 }
 
+const getGameData = async (req,res) => {
+    try{
+        console.log(req.params)
+        const game = await matchModel.getGameDetails(req.params.gameNumber);
+
+        res.json({success: true, game})
+    } catch (error) {
+        console.log('get game error:', error)
+        res.status(500).json({error: 'failed to get game details'})
+    }
+}
+
 const updateMatchName = async (req, res) => {
     try {
         const roomCode = req.params.roomCode;
@@ -76,5 +88,6 @@ const joinMatch = async (req, res) => {
 module.exports = {
     createMatch,
     getMatchDetails,
-    updateMatchName
+    updateMatchName,
+    getGameData
 };
