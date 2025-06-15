@@ -7,6 +7,8 @@ import Profile from "./components/Profile.jsx";
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
 import MatchController from "./components/MatchController.jsx";
 import GamesPage from "./components/GamesPage.jsx";
+import GameDetailPage from "./components/GameDetailPage.jsx";
+import GameFormPage from "./components/GameFormPage.jsx";
 
 function App() {
     return (
@@ -14,7 +16,7 @@ function App() {
             <div className="min-h-screen bg-gray-900 text-gray-100 flex flex-col font-inter">
                 <header className="bg-gray-800 p-4 shadow-md flex justify-between items-center">
                     <Link to="/" className="text-2xl font-bold text-blue-400 hover:text-blue-300 rounded-lg p-2 transition duration-300">
-                        Schlag den Raab Clone
+                        Matchpoint
                     </Link>
                     <nav>
                         <ul className="flex space-x-4">
@@ -42,6 +44,9 @@ function App() {
                         <Route path='/' element={<HomePage />}/>
                         <Route path='/dashboard' element={<ProtectedRoute><Dashboard /></ProtectedRoute>}/>
                         <Route path='/dashboard/games' element={<ProtectedRoute><GamesPage /></ProtectedRoute>}/> {/* <--- NEW ROUTE */}
+                        <Route path='/dashboard/games/:gameId' element={<ProtectedRoute><GameDetailPage /></ProtectedRoute>}/>
+                        <Route path="/dashboard/games/new" element={<ProtectedRoute><GameFormPage type="new" /></ProtectedRoute>} />
+                        <Route path="/dashboard/games/:gameId/edit" element={<ProtectedRoute><GameFormPage type="edit" /></ProtectedRoute>} />
                         <Route path='/match/:roomCode/host' element={<ProtectedRoute><MatchController isHost={true} /></ProtectedRoute>}/>
                         <Route path='/match/:roomCode/player' element={<ProtectedRoute><MatchController isHost={false} /></ProtectedRoute>}/>
                         <Route path='/register' element={<Register />}/>

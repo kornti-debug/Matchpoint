@@ -70,6 +70,29 @@ export const createMatch = async (matchName) => {
     }
 };
 
+export const createGame = async (gameData) => {
+    try {
+        console.log({gameData})
+        const response = await fetch(`${API_URL}/games/create`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${localStorage.getItem('token')}`
+            },body: JSON.stringify(gameData)
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.message || 'Failed to create game');
+        }
+
+        return await response.json();
+    } catch (error) {
+        console.error('Error creating game:', error);
+        throw error;
+    }
+};
+
 export const getMatchDetails = async (roomCode) => {
     try {
         const response = await fetch(`${API_URL}/matches/${roomCode}`, {
@@ -115,6 +138,85 @@ export const getAllGames = async () => {
         throw error;
     }
 };
+
+// ... (existing code for login, register, createMatch, getMatchDetails, etc.) ...
+
+/**
+ * Fetches a single game's details from the backend by ID.
+ * @param {number} gameId - The ID of the game to fetch.
+ * @returns {Promise<Object>} A promise that resolves with the game object.
+ */
+export const getGameById = async (gameId) => {
+    try {
+        console.log(`Frontend: Fetching game with ID ${gameId} from backend.`);
+        const response = await fetch(`${API_URL}/games/${gameId}`, { // Endpoint: /api/games/:id
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${localStorage.getItem('token')}`
+            }
+        });
+        if(!response.ok){
+            const errorData = await response.json();
+            throw new Error(errorData.message || `failed to fetch games`)
+        }
+
+        const data = await response.json()
+        console.log(data)
+        return data.result; // Backend returns { success: true, game: {...} }
+    } catch (error) {
+        console.error(`Frontend: Error getting game with ID ${gameId}:`, error);
+        throw error;
+    }
+};
+
+export const updateGame = async (gameId, gameData) => {
+    try {
+        console.log(`Frontend: Updating game with ID ${gameId} with data:`, gameData);
+        const response = await fetch(`${API_URL}/games/${gameId}`, {
+            method: 'PUT', // Use PUT method for updating
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${localStorage.getItem('token')}` // Authenticated route
+            },
+            body: JSON.stringify(gameData)
+        });
+        if(!response.ok){
+            const errorData = await response.json();
+            throw new Error(errorData.message || `failed to update game`)
+        }
+        return await response.json();
+    } catch (error) {
+        console.error(`Frontend: Error updating game with ID ${gameId}:`, error);
+        throw error;
+    }
+};
+
+export const deleteGame = async (gameId) => {
+    try {
+        console.log(`Frontend: Deleting game with ID ${gameId}.`);
+        const response = await fetch(`${API_URL}/games/${gameId}`, {
+            method: 'DELETE', // Use DELETE method
+            headers: {
+                'Content-Type': 'application/json', // Good practice to include, even if no body
+                'Authorization': `Bearer ${localStorage.getItem('token')}`
+            }
+        });
+
+        // Use your current error handling pattern if you don't have handleResponse
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.message || `Failed to delete game with ID ${gameId}`);
+        }
+        return await response.json();
+
+    } catch (error) {
+        console.error(`Frontend: Error deleting game with ID ${gameId}:`, error);
+        throw error;
+    }
+};
+
+// ... (rest of your apiService.js) ...
 
 export const updateMatchName = async (roomCode, matchName) => {
     try {
