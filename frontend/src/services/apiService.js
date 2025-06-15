@@ -93,6 +93,29 @@ export const getMatchDetails = async (roomCode) => {
     }
 }
 
+export const getAllGames = async () => {
+    try {
+        console.log('Frontend: Fetching all games from backend.');
+        const response = await fetch(`${API_URL}/games`, { // Note the endpoint: /api/games
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${localStorage.getItem('token')}` // Protected route
+            }
+        });
+        if(!response.ok){
+            const errorData = await response.json();
+            throw new Error(errorData.message || `failed to fetch games`)
+        }
+
+
+        return await response.json(); // Backend returns { success: true, games: [...] }
+    } catch (error) {
+        console.error('Frontend: Error getting all games:', error);
+        throw error;
+    }
+};
+
 export const updateMatchName = async (roomCode, matchName) => {
     try {
         const response = await fetch(`${API_URL}/matches/${roomCode}`, {
@@ -199,3 +222,9 @@ export const saveGameResults = async (roomCode, gameNumber, winners, points, new
 
     return { success: true, message: 'Mock results saved successfully.' };
 };
+
+
+/**
+ * Fetches all games from the backend.
+ * @returns {Promise<Array<Object>>} A promise that resolves with an array of game objects.
+ */

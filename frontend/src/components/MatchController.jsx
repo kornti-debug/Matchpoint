@@ -173,8 +173,7 @@ function MatchController({ isHost }) {
         // Could also send a WebSocket message if players need to be forced back
     };
 
-    // Log the matchState on every render for debugging purposes
-    console.log('MatchController render - matchState:', matchState);
+
 
     // Conditional rendering based on loading state and errors
     if (matchState.isLoading) {
