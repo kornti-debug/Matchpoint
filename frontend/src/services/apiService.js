@@ -300,16 +300,30 @@ try{
 };
 
 // Placeholder for saving game results
-export const saveGameResults = async (roomCode, gameNumber, winners, points, newScores) => {
-    console.warn(`API Service: MOCK - saveGameResults called for room ${roomCode}, game ${gameNumber}. You need to implement this on your backend.`);
-    // Simulate network delay
-    await new Promise(resolve => setTimeout(resolve, 400));
+export const saveGameResults = async (roomCode, gameNumber, winners, points) => { // Removed newScores from args, as it's computed on backend
+    try {
+        console.log(`Frontend: Submitting REAL game results for match ${roomCode}, game ${gameNumber}.`);
+        const response = await fetch(`${API_URL}/matches/${roomCode}/results`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${localStorage.getItem('token')}`
+            },
+            body: JSON.stringify({ gameNumber, winners, points }) // Send necessary data
+        });
 
-    // In a real scenario, you'd send winners, points, and possibly current scores to your backend.
-    // The backend would update its database.
-    console.log('MOCK saveGameResults data:', { roomCode, gameNumber, winners, points, newScores });
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.message || 'Failed to save game results');
+        }
 
-    return { success: true, message: 'Mock results saved successfully.' };
+        const data = await response.json();
+        // Backend should return { success: true, updatedPlayers: [...], updatedScores: {...} }
+        return { updatedPlayers: data.updatedPlayers, updatedScores: data.updatedScores };
+    } catch (error) {
+        console.error('Frontend: Error saving REAL game results:', error);
+        throw error;
+    }
 };
 
 

@@ -44,6 +44,47 @@ const getMatchDetails = async (req, res) => {
     }
 };
 
+/**
+ * Submits game results and updates player scores.
+ */
+const submitGameResults = async (req, res) => {
+    try {
+        const { roomCode } = req.params;
+        const { gameNumber, winners, points } = req.body; // winners: [{id: match_player_id, name: username}]
+
+        if (!winners || !Array.isArray(winners) || winners.length === 0 || isNaN(parseInt(points))) {
+            return res.status(400).json({ success: false, error: 'Invalid results data provided.' });
+        }
+
+        const match = await matchModel.getMatchByRoomCode(roomCode);
+        if (!match) {
+            return res.status(404).json({ error: 'Match not found.' });
+        }
+
+        // Prepare updates for the model
+        const playerUpdates = winners.map(winner => ({
+            match_player_id: winner.id, // This `id` is the match_players.id
+            points_awarded: parseInt(points)
+        }));
+
+        await matchModel.updatePlayerScores(match.id, playerUpdates);
+
+        // After updating scores, fetch the latest match details including players and their new scores
+        const updatedMatch = await matchModel.getMatchByRoomCode(roomCode);
+
+        res.json({
+            success: true,
+            message: 'Game results saved successfully.',
+            updatedPlayers: updatedMatch.players, // Send back the updated player list
+            updatedScores: updatedMatch.scores   // Send back the updated scores object
+        });
+
+    } catch (error) {
+        console.error('Submit game results error:', error);
+        res.status(500).json({ error: error.message || 'Failed to submit game results.' });
+    }
+};
+
 const getGameData = async (req,res) => {
     try{
         console.log(req.params)
@@ -115,5 +156,6 @@ module.exports = {
     getMatchDetails,
     updateMatchName,
     getGameData,
-    joinMatch
+    joinMatch,
+    submitGameResults
 };

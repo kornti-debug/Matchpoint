@@ -99,6 +99,42 @@ const updateMatchName = async (roomCode, matchName) => {
     });
 };
 
+const updatePlayerScores = (matchId, playerUpdates) => new Promise((resolve, reject) => {
+    console.log(`Model: Updating scores for match ${matchId} for players:`, playerUpdates);
+    if (!playerUpdates || playerUpdates.length === 0) {
+        return resolve(); // No updates to perform
+    }
+
+    // We'll execute updates individually for simplicity. For robustness, a transaction would be better.
+    const promises = playerUpdates.map(update => {
+        return new Promise((updateResolve, updateReject) => {
+            const sql = `
+                UPDATE match_players
+                SET total_score = total_score + ?
+                WHERE id = ? AND match_id = ?
+            `;
+            const params = [update.points_awarded, update.match_player_id, matchId];
+            db.query(sql, params, (err, result) => {
+                if (err) {
+                    console.error(`Database error updating score for player ${update.match_player_id}:`, err);
+                    updateReject(err);
+                } else if (result.affectedRows === 0) {
+                    console.warn(`No player found or no change for match_player_id ${update.match_player_id} in match ${matchId}.`);
+                    updateResolve(); // Resolve even if no rows affected (player not found or already has points)
+                } else {
+                    console.log(`Updated score for player ${update.match_player_id}. Affected rows: ${result.affectedRows}`);
+                    updateResolve(result);
+                }
+            });
+        });
+    });
+
+    // Use Promise.all to wait for all individual update promises to complete
+    Promise.all(promises)
+        .then(() => resolve()) // Resolve the main promise once all updates are done
+        .catch(err => reject(err)); // Reject if any individual update fails
+});
+
 const getGameDetails = (gameNumber) => new Promise((resolve, reject) => {
 
     let sql = "SELECT * FROM games WHERE game_number = ?";
@@ -159,5 +195,6 @@ module.exports = {
     getMatchByRoomCode,
     updateMatchName,
     getGameDetails,
-    joinMatch
+    joinMatch,
+    updatePlayerScores
 };

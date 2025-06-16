@@ -1,21 +1,29 @@
-// components/GameView.jsx
+// src/components/GameView.jsx
 import React, { useState, useEffect } from 'react';
 
-function GameView({ roomCode, matchState, isHost, submitGameResults, backToScoreboard }) {
-    const { currentGame, totalGames, gameData, players } = matchState;
-    const [selectedWinners, setSelectedWinners] = useState([]);
-    const [points, setPoints] = useState(1); // Default points for a game
+function GameView({ roomCode, matchState, isHost, submitGameResults, backToScoreboard }) { // Ensure backToScoreboard is received
+    const { matchDetails, players } = matchState;
+    const currentGameNumber = matchDetails.current_game_number;
+    const gameData = matchState.gameData;
+    const totalGames = matchState.totalGames;
 
-    // Reset selected winners when game changes
+    const [selectedWinners, setSelectedWinners] = useState([]);
+    const [points, setPoints] = useState(gameData?.points_value || 1);
+
     useEffect(() => {
         setSelectedWinners([]);
-    }, [currentGame]);
+        if (gameData && gameData.points_value !== undefined) {
+            setPoints(gameData.points_value);
+        } else {
+            setPoints(1);
+        }
+    }, [currentGameNumber, gameData]);
 
-    console.log(gameData)
+
     if (!gameData) {
         return (
             <div className="bg-gray-800 p-8 rounded-xl shadow-lg w-full max-w-xl text-center">
-                <p className="text-red-400 text-xl">Loading game data for Game {currentGame}...</p>
+                <p className="text-red-400 text-xl">Loading game data for Game {currentGameNumber}...</p>
             </div>
         );
     }
@@ -29,20 +37,19 @@ function GameView({ roomCode, matchState, isHost, submitGameResults, backToScore
     };
 
     const handleSubmit = () => {
-        if (selectedWinners.length > 0) {
-            submitGameResults(selectedWinners, parseInt(points));
-        } else {
-            // Implement a custom modal/message for user feedback, do not use alert()
+        if (selectedWinners.length === 0) {
             console.warn("Please select at least one winner.");
+            return;
         }
+        submitGameResults(selectedWinners, parseInt(points));
     };
 
     return (
         <div className="bg-gray-800 p-8 rounded-xl shadow-lg w-full max-w-3xl border-2 border-purple-600">
-            <h2 className="text-4xl font-bold mb-4 text-purple-400 text-center">Game {currentGame} of {totalGames}</h2>
+            <h2 className="text-4xl font-bold mb-4 text-purple-400 text-center">Game {currentGameNumber} of {totalGames}</h2>
 
             <div className="bg-gray-700 p-6 rounded-lg mb-6 shadow-inner">
-                <h3 className="text-3xl font-semibold mb-3 text-white">{gameData.title || `Unnamed Game ${currentGame}`}</h3>
+                <h3 className="text-3xl font-semibold mb-3 text-white">{gameData.title || `Unnamed Game ${currentGameNumber}`}</h3>
                 <p className="text-gray-300 text-lg leading-relaxed">{gameData.description || "No description provided for this game."}</p>
             </div>
 
@@ -89,8 +96,9 @@ function GameView({ roomCode, matchState, isHost, submitGameResults, backToScore
                         >
                             Submit Results
                         </button>
+                        {/* --- NEW "Back to Scoreboard" button for reviewing --- */}
                         <button
-                            onClick={backToScoreboard}
+                            onClick={backToScoreboard} // Call the prop function
                             className="flex-grow bg-gray-600 hover:bg-gray-700 text-white font-bold py-3 px-6 rounded-lg shadow-md transition duration-300 transform hover:scale-105"
                         >
                             Back to Scoreboard
@@ -100,7 +108,7 @@ function GameView({ roomCode, matchState, isHost, submitGameResults, backToScore
             )}
             {!isHost && (
                 <p className="text-center text-gray-400 mt-6 text-lg">
-                    Waiting for the host to submit results for Game {currentGame}...
+                    Waiting for the host to submit results for Game {currentGameNumber}...
                 </p>
             )}
         </div>

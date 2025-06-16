@@ -16,4 +16,6 @@ router.get('/games/:gameNumber', matchController.getGameData)
 // Join existing match
 router.post('/:roomCode/join', matchController.joinMatch);
 
+router.post('/:roomCode/results', matchController.submitGameResults);
+
 module.exports = router;

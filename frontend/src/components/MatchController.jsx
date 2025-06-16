@@ -1,5 +1,5 @@
 // components/MatchController.jsx
-import {useEffect, useState, useCallback} from "react"; // Added useCallback for fetchMatchDetails
+import {useEffect, useState, useCallback} from "react";
 import {useParams} from "react-router-dom";
 import * as apiService from "../services/apiService.js";
 
@@ -22,50 +22,49 @@ function MatchController({ isHost }) {
         scores: {},
         matchDetails: {
             matchname: '',
-            room_code: roomCode, // Initialize with roomCode from params
-            id: null, // Ensure ID is initialized
-            host_id: null, // Ensure host_id is initialized
-            status: 'waiting', // Ensure status is initialized
-            current_game_number: 1, // Ensure current_game_number is initialized
+            room_code: roomCode,
+            id: null,
+            host_id: null,
+            status: 'waiting',
+            current_game_number: 1,
         },
         gameData: null,
-        isLoading: true, // Start with loading true
+        isLoading: true,
         error: ''
     });
 
+    // --- NEW STATE VARIABLE ---
+    const [isReviewingScoreboard, setIsReviewingScoreboard] = useState(false);
+    // --- END NEW STATE VARIABLE ---
+
+
     // Function to fetch match details from the API service
-    // Wrapped in useCallback because it's a dependency of useEffect
     const fetchMatchDetails = useCallback(async () => {
         setMatchState(prev => ({ ...prev, isLoading: true, error: '' }));
         try {
-            const apiResponse = await apiService.getMatchDetails(roomCode); // Get the full API response
-            const matchData = apiResponse.match; // Access the 'match' object from the response
+            const apiResponse = await apiService.getMatchDetails(roomCode);
+            const matchData = apiResponse.match;
 
             setMatchState(prev => ({
                 ...prev,
                 matchDetails: {
-                    // Use optional chaining for safety, but data.match should exist
                     matchname: matchData?.matchname || `Match ${roomCode}`,
                     room_code: matchData?.room_code || roomCode,
                     id: matchData?.id || null,
                     host_id: matchData?.host_id || null,
                     status: matchData?.status || 'waiting',
                     current_game_number: matchData?.current_game_number || 1,
-                    // Spread operator to ensure all properties from matchData are included
                     ...matchData
                 },
-                // --- CORRECTED LINES ---
-                players: matchData?.players || [], // Access players from matchData
-                scores: matchData?.scores || {},   // Access scores from matchData
-                // --- END CORRECTED LINES ---
-                phase: matchData?.status || 'lobby', // Phase should come from match status
-                currentGame: matchData?.current_game_number || 1, // Current game number from match
-                totalGames: 15, // Total games typically hardcoded or fetched separately
+                players: matchData?.players || [],
+                scores: matchData?.scores || {},
+                phase: matchData?.status || 'lobby',
+                currentGame: matchData?.current_game_number || 1,
+                totalGames: 15,
                 isLoading: false
             }));
-            console.log('MatchController: matchState after fetch:', apiResponse); // Log the full API response here
+            console.log('MatchController: matchState after fetch:', apiResponse);
 
-            // If the match starts in game phase, fetch the game data
             if (matchData?.status === 'in_progress' && matchData?.current_game_number) {
                 const game = await apiService.getGameData(matchData.current_game_number);
                 setMatchState(prev => ({ ...prev, gameData: game }));
@@ -80,22 +79,18 @@ function MatchController({ isHost }) {
                 isLoading: false
             }));
         }
-    }, [roomCode]); // roomCode is a dependency
+    }, [roomCode]);
 
-    // This effect runs once on component mount to fetch match details
-    // It now correctly depends on fetchMatchDetails
     useEffect(() => {
         console.log('MatchController mounted with roomCode:', roomCode);
         fetchMatchDetails();
-    }, [fetchMatchDetails]); // fetchMatchDetails is now a dependency
+    }, [fetchMatchDetails]);
 
 
     // --- Game Flow Control Functions (primarily for Host) ---
 
-    // Function to start the match (Host action)
     const startMatch = async () => {
-        // Prevent starting if already in a game or no players
-        if (matchState.phase !== 'lobby' && matchState.phase !== 'waiting') { // Also allow 'waiting'
+        if (matchState.phase !== 'lobby' && matchState.phase !== 'waiting') {
             console.warn("Cannot start match: Not in lobby/waiting phase.");
             return;
         }
@@ -103,19 +98,19 @@ function MatchController({ isHost }) {
             console.warn("Cannot start match: No players have joined yet.");
             return;
         }
-        // Save the start to backend (will implement later)
-        // For now, just transition state
+
         try {
-            // Fetch data for the first game (Game 1)
-            const gameData = await apiService.getGameData(1);
+            // TODO: Implement actual backend call to start match and transition status
+            const gameData = await apiService.getGameData(1); // Fetch real game data
             setMatchState(prev => ({
                 ...prev,
-                phase: 'game',          // Transition to game phase
-                currentGame: 1,         // Set current game to 1
-                gameData: gameData,     // Load game data
-                // Ensure all joined players are in scores, initialized if not present
+                phase: 'game',
+                currentGame: 1,
+                gameData: gameData,
                 scores: prev.players.reduce((acc, player) => ({...acc, [player.id]: prev.scores[player.id] || 0}), {})
             }));
+            // After starting, ensure we're not in review mode
+            setIsReviewingScoreboard(false); // <--- NEW: Reset this flag
             console.log('Match started in frontend (mocked transition).');
 
         } catch (error) {
@@ -124,7 +119,7 @@ function MatchController({ isHost }) {
         }
     };
 
-    // Function to submit game results (Host action)
+
     const submitGameResults = async (winners, points) => {
         if (!Array.isArray(winners) || winners.length === 0) {
             console.error("Submit Game Results: Invalid winners array.");
@@ -132,29 +127,22 @@ function MatchController({ isHost }) {
         }
 
         try {
-            // Calculate new scores locally
-            const newScores = { ...matchState.scores };
-            winners.forEach(winner => {
-                newScores[winner.id] = (newScores[winner.id] || 0) + points;
-            });
-
-            // Update player objects with new total_score as well for consistency
-            const updatedPlayers = matchState.players.map(player => ({
-                ...player,
-                total_score: newScores[player.id] // Ensure player object also reflects new score
-            }));
-
+            const { updatedPlayers, updatedScores } = await apiService.saveGameResults(
+                roomCode,
+                matchState.currentGame,
+                winners,
+                points
+            );
 
             setMatchState(prev => ({
                 ...prev,
-                scores: newScores,  // Update scores in state
-                players: updatedPlayers, // Update players list with new scores
-                phase: 'scoreboard' // Transition to scoreboard phase
+                scores: updatedScores,
+                players: updatedPlayers,
+                phase: 'scoreboard'
             }));
-
-            // Save results to the database via API service (this is still mock)
-            await apiService.saveGameResults(roomCode, matchState.currentGame, winners, points, newScores);
-            console.log('Game results saved to DB (mocked for now):', newScores);
+            // --- NEW: Set isReviewingScoreboard to false because we are ready to advance ---
+            setIsReviewingScoreboard(false);
+            console.log('Game results saved to DB (real API). Transitioning to Scoreboard for next game.');
 
         } catch (error) {
             console.error('Failed to submit results:', error);
@@ -162,24 +150,31 @@ function MatchController({ isHost }) {
         }
     };
 
-    // Function to advance to the next game (Host action)
     const nextGame = async () => {
         const nextGameNumber = matchState.currentGame + 1;
 
         if (nextGameNumber > matchState.totalGames) {
             setMatchState(prev => ({ ...prev, phase: 'finished' }));
+            setIsReviewingScoreboard(false); // <--- NEW: Reset this flag
             return;
         }
 
         try {
-            // Fetch data for the next game (this is now real API call for game data)
-            const gameData = await apiService.getGameData(nextGameNumber);
+            // This is currently a mock call, but will eventually update match status in DB
+            const gameData = await apiService.getGameData(nextGameNumber); // Fetch real game data
             setMatchState(prev => ({
                 ...prev,
-                phase: 'game',          // Transition back to game phase
-                currentGame: nextGameNumber, // Update current game number
-                gameData: gameData      // Load new game data
+                phase: 'game',
+                currentGame: nextGameNumber,
+                gameData: gameData,
+                matchDetails: {
+                    ...prev.matchDetails, // Keep all other matchDetails properties
+                    current_game_number: nextGameNumber // Update this specific property
+                }
             }));
+            // After advancing, ensure we're not in review mode
+            setIsReviewingScoreboard(false); // <--- NEW: Reset this flag
+            console.log('Advanced to next game in frontend (mocked transition).');
 
         } catch (error) {
             console.error('Failed to load next game:', error);
@@ -187,11 +182,13 @@ function MatchController({ isHost }) {
         }
     };
 
-    // Function to go back to scoreboard (Host action - if needed for review)
+    // --- MODIFIED backToScoreboard function ---
     const backToScoreboard = () => {
         setMatchState(prev => ({ ...prev, phase: 'scoreboard' }));
+        // --- NEW: Set isReviewingScoreboard to true to indicate we're just reviewing ---
+        setIsReviewingScoreboard(true);
+        console.log('Returning to scoreboard for review.');
     };
-
 
     // Conditional rendering based on loading state and errors
     if (matchState.isLoading) {
@@ -217,10 +214,9 @@ function MatchController({ isHost }) {
         );
     }
 
-    // Render components based on the current phase
     return (
         <div className="flex-grow flex items-center justify-center p-4">
-            {matchState.phase === 'lobby' || matchState.phase === 'waiting' ? ( // Handle 'waiting' from backend status
+            {matchState.phase === 'lobby' || matchState.phase === 'waiting' ? (
                 isHost ?
                     <HostLobby
                         roomCode={roomCode}
@@ -242,8 +238,8 @@ function MatchController({ isHost }) {
                     matchState={matchState}
                     setMatchState={setMatchState}
                     isHost={isHost}
-                    submitGameResults={submitGameResults} // Only relevant for host
-                    backToScoreboard={backToScoreboard} // Only relevant for host
+                    submitGameResults={submitGameResults}
+                    backToScoreboard={backToScoreboard}
                 />
             )}
 
@@ -253,7 +249,9 @@ function MatchController({ isHost }) {
                     matchState={matchState}
                     setMatchState={setMatchState}
                     isHost={isHost}
-                    nextGame={nextGame} // Only relevant for host
+                    nextGame={nextGame}
+                    // --- NEW PROP: Pass isReviewingScoreboard to Scoreboard ---
+                    isReviewingScoreboard={isReviewingScoreboard}
                 />
             )}
 
