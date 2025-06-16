@@ -1,4 +1,5 @@
 const matchModel = require('../models/match.model');
+const userModel = require('../models/user.model')
 
 const createMatch = async (req, res) => {
     try {
@@ -16,17 +17,32 @@ const createMatch = async (req, res) => {
     }
 };
 
-const getMatchDetails = async (req,res) => {
-    try{
+const getMatchDetails = async (req, res) => {
+    try {
         const roomCode = req.params.roomCode;
+        // The match object from the model now contains players and scores
         const match = await matchModel.getMatchByRoomCode(roomCode);
 
-        res.json({success: true, match})
+        // --- ADJUSTED RESPONSE STRUCTURE ---
+        res.json({
+            success: true,
+            match: {
+                id: match.id,
+                host_id: match.host_id,
+                room_code: match.room_code,
+                status: match.status,
+                current_game_number: match.current_game_number,
+                matchname: match.matchname,
+                players: match.players || [], // Use players from model, fallback to empty array
+                scores: match.scores || {}    // Use scores from model, fallback to empty object
+            }
+        });
+        // --- END ADJUSTED RESPONSE STRUCTURE ---
     } catch (error) {
-        console.log('get match error:', error)
-        res.status(500).json({error: 'failed to get match details'})
+        console.error('Get match details error:', error);
+        res.status(500).json({ error: error.message || 'Failed to get match details' });
     }
-}
+};
 
 const getGameData = async (req,res) => {
     try{
@@ -60,15 +76,14 @@ const updateMatchName = async (req, res) => {
 };
 
 
-/*
+
 const joinMatch = async (req, res) => {
     try {
-        console.log("HOLOLOLO", req.body)
         const userId = req.user.id;
         const { roomCode } = req.params;
 
         // Get match by code
-        const match = await matchModel.getMatchByCode(roomCode);
+        const match = await matchModel.getMatchByRoomCode(roomCode);
 
         // Check if match is waiting
         if (match.status !== 'waiting') {
@@ -76,18 +91,29 @@ const joinMatch = async (req, res) => {
         }
 
         // Join the match
-        await matchModel.joinMatch(match.id, userId);
+        const playerEntry = await matchModel.joinMatch(match.id, userId);
 
-        res.json({ success: true });
+        const user = await userModel.getUser(userId)
+
+        res.json({ success: true,
+                    message: "Successfully joined match.",
+            player: {
+                id: playerEntry.id, // This is the ID from the `match_players` table
+                user_id: user.id,   // This is the user's actual ID from `users` table
+                name: user.username, // This is the user's username
+                total_score: playerEntry.total_score // This should be 0 initially
+            }
+ });
     } catch (error) {
         console.error('Join match error:', error);
         res.status(400).json({ error: error.message });
     }
-};*/
+};
 
 module.exports = {
     createMatch,
     getMatchDetails,
     updateMatchName,
-    getGameData
+    getGameData,
+    joinMatch
 };

@@ -26,22 +26,59 @@ const createMatch = (matchName, hostId) => new Promise((resolve, reject) => {
 });
 
 const getMatchByRoomCode = (roomCode) => new Promise((resolve, reject) => {
-
-    let sql = "SELECT * FROM matches WHERE room_code = ?";
+    let sql = "SELECT id, host_id, room_code, status, current_game_number, winner_id, matchname FROM matches WHERE room_code = ?"; // Select all necessary fields
 
     db.query(sql, [roomCode], function (err, result) {
-
         if (err) {
-            console.log('Database error:', err);
-            reject(err);
+            console.error('Database error:', err);
+            return reject(err); // Ensure the outer Promise rejects on error
         } else if (result.length === 0) {
             console.log('No match found for room code:', roomCode);
-            reject(new Error('Match not found'));
+            return reject(new Error('Match not found')); // Ensure the outer Promise rejects
         } else {
             console.log('Match found, returning:', result[0]);
-            resolve(result[0]);
+            const match = result[0]; // 'match' is now defined in this scope
+
+            // --- NESTED CODE STARTS HERE ---
+            // Now that 'match' is defined, we can query for players
+            const playersSql = `
+                SELECT mp.id AS id, mp.user_id, u.username AS name, mp.total_score
+                FROM match_players AS mp
+                         JOIN users AS u ON mp.user_id = u.id
+                WHERE mp.match_id = ?
+                ORDER BY mp.joined_at ASC`; // Ordering helps consistent display
+
+            db.query(playersSql, [match.id], (playersErr, playersResult) => {
+                if (playersErr) {
+                    console.error('Database error fetching players for match:', playersErr);
+                    return reject(playersErr); // Reject the main promise if player fetch fails
+                }
+
+                const players = playersResult; // `playersResult` will be an array of player objects
+                const scores = {}; // Initialize scores object
+
+                // Populate the scores object
+                players.forEach(player => {
+                    scores[player.id] = player.total_score;
+                });
+
+                // Resolve the main getMatchByRoomCode promise with the full, enriched match object
+                resolve({
+                    id: match.id,
+                    host_id: match.host_id,
+                    room_code: match.room_code,
+                    status: match.status,
+                    current_game_number: match.current_game_number,
+                    matchname: match.matchname,
+                    players: players, // Add the fetched players array
+                    scores: scores    // Add the constructed scores object
+                });
+            });
+            // --- NESTED CODE ENDS HERE ---
         }
     });
+    // The previous playersSql and db.query were here, which was the issue.
+    // They must be inside the 'else' block of the first query.
 });
 
 const updateMatchName = async (roomCode, matchName) => {
@@ -81,6 +118,35 @@ const getGameDetails = (gameNumber) => new Promise((resolve, reject) => {
     });
 });
 
+const joinMatch = (matchId, userId) => new Promise((resolve, reject) => {
+    // Check if the user is already in this match
+    const checkSql = "SELECT * FROM match_players WHERE match_id = ? AND user_id = ?";
+    db.query(checkSql, [matchId, userId], (err, result) => {
+        if (err) {
+            return reject(err);
+        }
+        if (result.length > 0) {
+            // User already joined
+            return resolve(result[0]); // Return existing player entry
+        }
+
+        // If not, insert new player into the `players` table
+        const insertSql = "INSERT INTO match_players (match_id, user_id) VALUES (?, ?)";
+        db.query(insertSql, [matchId, userId], (err, result) => {
+            if (err) {
+                reject(err);
+            } else {
+                console.log("JAJA",result)
+                resolve({
+                    id: result.insertId, // ID of the new player entry in the players table
+                    match_id: matchId,
+                    user_id: userId
+                });
+            }
+        });
+    });
+});
+
 
 
 // Helper function to generate room code
@@ -92,5 +158,6 @@ module.exports = {
     createMatch,
     getMatchByRoomCode,
     updateMatchName,
-    getGameDetails
+    getGameDetails,
+    joinMatch
 };

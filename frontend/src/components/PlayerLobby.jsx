@@ -1,47 +1,40 @@
-// components/PlayerLobby.jsx
+// src/components/PlayerLobby.jsx (locate and modify)
 import React, { useState, useEffect } from 'react';
+import * as apiService from '../services/apiService.js';
 
 function PlayerLobby({ roomCode, matchState, setMatchState }) {
-    const [playerName, setPlayerName] = useState('');
+    // REMOVED: const [playerName, setPlayerName] = useState('');
     const [hasJoined, setHasJoined] = useState(false);
     const [joinMessage, setJoinMessage] = useState('');
 
-    // Simulate joining on initial render if not already joined
-    useEffect(() => {
-        // In a real app, this would check localStorage or a cookie for a player ID
-        // and attempt to rejoin, or prompt for name if not found.
-        // For now, we'll prompt for a name if not yet joined.
-    }, []);
-
     const handleJoinMatch = async () => {
-        if (!playerName.trim()) {
-            setJoinMessage('Please enter a name!');
-            return;
-        }
+        // REMOVED: if (!playerName.trim()) validation
 
         try {
-            // Simulate API call to join a match.
-            // In a real app, this would send the player's name to the backend
-            // and the backend would return a player ID and update match state.
-            const newPlayer = await apiService.joinMatch(roomCode, playerName.trim());
+            // Call the real API service to join a match. No playerName needed here.
+            const newPlayer = await apiService.joinMatch(roomCode); // Simplified call
 
-            setMatchState(prev => ({
-                ...prev,
-                players: [...prev.players, newPlayer],
-                scores: { ...prev.scores, [newPlayer.id]: 0 } // Initialize score
-            }));
+            // Update local state for this player's view
+            setMatchState(prev => {
+                const existingPlayer = prev.players.find(p => p.id === newPlayer.id);
+                if (!existingPlayer) {
+                    return {
+                        ...prev,
+                        players: [...prev.players, newPlayer],
+                        scores: { ...prev.scores, [newPlayer.id]: newPlayer.total_score || 0 }
+                    };
+                }
+                return prev;
+            });
+
             setHasJoined(true);
-            setJoinMessage(`Welcome, ${newPlayer.name}! Waiting for the host to start the game.`);
-            // In a real WebSocket setup, the player would open a WebSocket here
-            // and send a 'player_joined' message to the server.
-            // The server would then broadcast this to the host and other players.
+            setJoinMessage(`Welcome! Waiting for the host to start the game.`); // Simplified message
 
         } catch (error) {
             console.error("Error joining match:", error);
             setJoinMessage(`Failed to join: ${error.message}`);
         }
     };
-
 
     return (
         <div className="bg-gray-800 p-8 rounded-xl shadow-lg w-full max-w-xl text-center border-2 border-green-600">
@@ -50,15 +43,8 @@ function PlayerLobby({ roomCode, matchState, setMatchState }) {
 
             {!hasJoined ? (
                 <div className="mb-6">
-                    <h3 className="text-2xl font-semibold mb-3 text-white">Enter Your Name to Join:</h3>
-                    <input
-                        type="text"
-                        placeholder="Your Name"
-                        value={playerName}
-                        onChange={(e) => setPlayerName(e.target.value)}
-                        className="w-full p-3 mb-4 rounded-lg bg-gray-700 text-white placeholder-gray-400 border border-gray-600 focus:outline-none focus:ring-2 focus:ring-green-500"
-                        required
-                    />
+                    <h3 className="text-2xl font-semibold mb-3 text-white">Ready to Join? Click below!</h3> {/* Simplified text */}
+                    {/* REMOVED PLAYER NAME INPUT FIELD */}
                     <button
                         onClick={handleJoinMatch}
                         className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-lg shadow-md transition duration-300 transform hover:scale-105"
@@ -69,7 +55,7 @@ function PlayerLobby({ roomCode, matchState, setMatchState }) {
                 </div>
             ) : (
                 <>
-                    <h3 className="text-2xl font-semibold mb-3 text-white">Joined as: <span className="text-green-300">{playerName}</span></h3>
+                    <h3 className="text-2xl font-semibold mb-3 text-white">You've Joined!</h3> {/* Simplified message */}
                     <p className="text-gray-400 text-lg">Waiting for the host to start the game...</p>
                     <div className="mt-8">
                         <h4 className="text-xl font-semibold mb-3 text-white">Current Players:</h4>
@@ -79,7 +65,7 @@ function PlayerLobby({ roomCode, matchState, setMatchState }) {
                             <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-gray-300">
                                 {matchState.players.map(player => (
                                     <li key={player.id} className="bg-gray-700 p-2 rounded-md shadow-sm">
-                                        {player.name}
+                                        {player.name} {player.total_score !== undefined ? `(${player.total_score} pts)` : ''}
                                     </li>
                                 ))}
                             </ul>

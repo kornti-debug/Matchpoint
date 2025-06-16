@@ -247,7 +247,7 @@ export const updateMatchName = async (roomCode, matchName) => {
 
 // Adjusted joinMatch to temporarily accept playerName for client-side testing
 // In a real app, your backend would likely handle player association based on authentication.
-export const joinMatch = async (roomCode, playerName = 'Player') => {
+export const joinMatch = async (roomCode) => {
     try {
         // Send request to your backend to join the match.
         // Your backend would typically use the auth token to identify the joining user.
@@ -257,8 +257,7 @@ export const joinMatch = async (roomCode, playerName = 'Player') => {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${localStorage.getItem('token')}`
             },
-            // If your backend needs a player name explicitly, include it here:
-            // body: JSON.stringify({ playerName })
+
         });
 
         if (!response.ok) {
@@ -268,33 +267,15 @@ export const joinMatch = async (roomCode, playerName = 'Player') => {
 
         const result = await response.json();
 
-        // TEMPORARY: Create a mock player object for client-side state update
-        // In a real app, your backend might return the player's details, or
-        // a WebSocket message would populate the full player list for the match.
-        const mockPlayer = {
-            id: result.playerId || `temp-player-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
-            name: playerName // Use the provided name or a default
-        };
-        console.log(`Mock: Player ${mockPlayer.name} joined match ${roomCode}.`);
-        return mockPlayer; // Return the mock player for client-side use
+        console.log("joinmatch api: ",result)
+        return result; // Return the mock player for client-side use
     } catch (error) {
         console.error('Error joining match:', error);
         throw error;
     }
 };
 
-// --- NEW TEMPORARY MOCK API Calls (to prevent errors in MatchController) ---
 
-// Mock game data as your backend doesn't seem to have this endpoint yet.
-const tempMockGameData = {
-    1: { name: "The Grand Opening", description: "This is the first challenge! It requires quick thinking and a bit of luck. Players must identify 5 common household items within 30 seconds." },
-    2: { name: "Musical Chairs Mayhem", description: "A classic game with a twist! When the music stops, players must find a chair. The last player standing wins!" },
-    3: { name: "Fact or Fiction", description: "The host reads a statement. Players must decide if it's a fact or fiction. Correct answers score points!" },
-    // Add more games as needed, up to 15
-    15: { name: "Grand Finale Quiz", description: "A rapid-fire general knowledge quiz covering various topics. The player with the most correct answers wins the final big points!" }
-};
-
-// Placeholder for fetching game data
 export const getGameData = async (gameNumber) => {
 try{
     const response = await fetch(`${API_URL}/matches/games/${gameNumber}`,

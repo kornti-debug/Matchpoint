@@ -38,23 +38,6 @@ function HostLobby({ roomCode, matchState, setMatchState, startMatch }) {
                 )}
             </div>
 
-            <div className="mb-8">
-                <h3 className="text-2xl font-semibold mb-3 text-white">Join as a Player (for Host):</h3>
-                <input
-                    type="text"
-                    placeholder="Your Player Name"
-                    value={playerName}
-                    onChange={(e) => setPlayerName(e.target.value)}
-                    className="w-full p-3 mb-4 rounded-lg bg-gray-700 text-white placeholder-gray-400 border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-                <button
-                    onClick={handleJoinAsHostPlayer}
-                    className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-6 rounded-lg shadow-md transition duration-300 transform hover:scale-105"
-                >
-                    Add Me as Player
-                </button>
-            </div>
-
             <button
                 onClick={startMatch}
                 disabled={matchState.players.length === 0} // Disable if no players
