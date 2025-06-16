@@ -1,29 +1,25 @@
 // src/components/GameView.jsx
 import React, { useState, useEffect } from 'react';
 
-function GameView({ roomCode, matchState, isHost, submitGameResults, backToScoreboard }) { // Ensure backToScoreboard is received
+function GameView({ roomCode, matchState, isHost, submitGameResults, backToScoreboard }) {
     const { matchDetails, players } = matchState;
-    const currentGameNumber = matchDetails.current_game_number;
+    const currentGameIndex = matchDetails.current_game_number; // This is the 0-based index
     const gameData = matchState.gameData;
-    const totalGames = matchState.totalGames;
+    const totalGames = matchState.totalGames; // This is length of sequence
 
     const [selectedWinners, setSelectedWinners] = useState([]);
-    const [points, setPoints] = useState(gameData?.points_value || 1);
+    // --- REMOVED: const [points, setPoints] = useState(gameData?.points_value || 1); ---
 
     useEffect(() => {
         setSelectedWinners([]);
-        if (gameData && gameData.points_value !== undefined) {
-            setPoints(gameData.points_value);
-        } else {
-            setPoints(1);
-        }
-    }, [currentGameNumber, gameData]);
+        // --- REMOVED: points state related cleanup ---
+    }, [currentGameIndex, gameData]);
 
 
     if (!gameData) {
         return (
             <div className="bg-gray-800 p-8 rounded-xl shadow-lg w-full max-w-xl text-center">
-                <p className="text-red-400 text-xl">Loading game data for Game {currentGameNumber}...</p>
+                <p className="text-red-400 text-xl">Loading game data for Game {currentGameIndex + 1}...</p> {/* Displaying index + 1 */}
             </div>
         );
     }
@@ -41,23 +37,30 @@ function GameView({ roomCode, matchState, isHost, submitGameResults, backToScore
             console.warn("Please select at least one winner.");
             return;
         }
-        submitGameResults(selectedWinners, parseInt(points));
+        // --- MODIFIED: submitGameResults no longer takes points here ---
+        submitGameResults(selectedWinners);
     };
+
+    // Calculate points display for the user
+    const pointsForCurrentGame = currentGameIndex + 1; // 0-indexed game 0 gives 1 point
 
     return (
         <div className="bg-gray-800 p-8 rounded-xl shadow-lg w-full max-w-3xl border-2 border-purple-600">
-            <h2 className="text-4xl font-bold mb-4 text-purple-400 text-center">Game {currentGameNumber} of {totalGames}</h2>
+            {/* --- FIX 1: Display currentGameIndex + 1 --- */}
+            <h2 className="text-4xl font-bold mb-4 text-purple-400 text-center">Game {currentGameIndex + 1} of {totalGames}</h2>
 
             <div className="bg-gray-700 p-6 rounded-lg mb-6 shadow-inner">
-                <h3 className="text-3xl font-semibold mb-3 text-white">{gameData.title || `Unnamed Game ${currentGameNumber}`}</h3>
+                <h3 className="text-3xl font-semibold mb-3 text-white">{gameData.title || `Unnamed Game ${currentGameIndex + 1}`}</h3>
                 <p className="text-gray-300 text-lg leading-relaxed">{gameData.description || "No description provided for this game."}</p>
             </div>
 
             {isHost && (
                 <div className="mt-8 border-t border-gray-700 pt-6">
                     <h3 className="text-2xl font-bold mb-4 text-white">Host Controls:</h3>
-                    <p className="text-gray-300 mb-4">Select the winner(s) for this game and assign points.</p>
+                    <p className="text-gray-300 mb-4">Select the winner(s) for this game. This game awards <span className="font-bold text-yellow-300">{pointsForCurrentGame}</span> points.</p>
 
+                    {/* --- REMOVED: Points input field entirely --- */}
+                    {/*
                     <div className="mb-6">
                         <label htmlFor="points" className="block text-gray-300 text-lg font-semibold mb-2">Points for this game:</label>
                         <input
@@ -69,12 +72,14 @@ function GameView({ roomCode, matchState, isHost, submitGameResults, backToScore
                             className="w-full p-3 rounded-lg bg-gray-700 text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-purple-500"
                         />
                     </div>
+                    */}
 
                     <h4 className="text-xl font-semibold mb-3 text-white">Select Winners:</h4>
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 mb-6">
                         {players.length > 0 ? players.map(player => (
                             <button
                                 key={player.id}
+                                type="button" // Ensure it's a button type to prevent form submission
                                 onClick={() => handleWinnerToggle(player)}
                                 className={`p-3 rounded-lg shadow-md transition duration-200
                                     ${selectedWinners.some(w => w.id === player.id)
@@ -96,9 +101,8 @@ function GameView({ roomCode, matchState, isHost, submitGameResults, backToScore
                         >
                             Submit Results
                         </button>
-                        {/* --- NEW "Back to Scoreboard" button for reviewing --- */}
                         <button
-                            onClick={backToScoreboard} // Call the prop function
+                            onClick={backToScoreboard}
                             className="flex-grow bg-gray-600 hover:bg-gray-700 text-white font-bold py-3 px-6 rounded-lg shadow-md transition duration-300 transform hover:scale-105"
                         >
                             Back to Scoreboard
@@ -108,7 +112,7 @@ function GameView({ roomCode, matchState, isHost, submitGameResults, backToScore
             )}
             {!isHost && (
                 <p className="text-center text-gray-400 mt-6 text-lg">
-                    Waiting for the host to submit results for Game {currentGameNumber}...
+                    Waiting for the host to submit results for Game {currentGameIndex + 1}...
                 </p>
             )}
         </div>

@@ -47,7 +47,7 @@ export const register = async (username, password) => {
     }
 };
 
-export const createMatch = async (matchName) => {
+export const createMatch = async (matchName, gameSequence) => {
     try {
         console.log("haha",matchName)
         const response = await fetch(`${API_URL}/matches`, {
@@ -55,7 +55,7 @@ export const createMatch = async (matchName) => {
             headers: {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${localStorage.getItem('token')}`
-            },body: JSON.stringify({matchName})
+            },body: JSON.stringify({matchName, gameSequence})
         });
 
         if (!response.ok) {
@@ -325,6 +325,61 @@ export const saveGameResults = async (roomCode, gameNumber, winners, points) => 
         throw error;
     }
 };
+
+export const startMatch = async (roomCode) => {
+    try {
+        console.log(`Frontend: Requesting to START REAL match ${roomCode} from backend.`);
+        const response = await fetch(`${API_URL}/matches/${roomCode}/start`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${localStorage.getItem('token')}`
+            },
+            body: JSON.stringify({}) // Send an empty object if no specific body is needed by backend
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.message || 'Failed to start match');
+        }
+        return await response.json(); // Backend returns { success: true, message: ... }
+    } catch (error) {
+        console.error('Frontend: Error starting REAL match:', error);
+        throw error;
+    }
+};
+
+export const nextGame = async (roomCode, newGameNumber, isMatchFinished) => {
+    try {
+        console.log(`Frontend: Requesting REAL next game for match ${roomCode}, game ${newGameNumber}. Finished: ${isMatchFinished}`);
+        const response = await fetch(`${API_URL}/matches/${roomCode}/next-game`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${localStorage.getItem('token')}`
+            },
+            body: JSON.stringify({ newGameNumber, isMatchFinished }) // Send necessary data
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.message || 'Failed to advance game');
+        }
+
+        const data = await response.json();
+        // Backend returns { success: true, newStatus: ..., newCurrentGameNumber: ..., gameData: ... }
+        return {
+            newStatus: data.newStatus,
+            newCurrentGameNumber: data.newCurrentGameNumber,
+            gameData: data.gameData // This will be null if finished, or the game object
+        };
+    } catch (error) {
+        console.error('Frontend: Error advancing REAL game:', error);
+        throw error;
+    }
+};
+
+
 
 
 /**

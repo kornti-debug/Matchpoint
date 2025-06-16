@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 
 function HostLobby({ roomCode, matchState, setMatchState, startMatch }) {
-    const [playerName, setPlayerName] = useState('');
+    const [playerName, setPlayerName] = useState(''); // Kept for your future local-only mode idea
 
     const handleJoinAsHostPlayer = () => {
         if (!playerName.trim()) return;
@@ -10,10 +10,9 @@ function HostLobby({ roomCode, matchState, setMatchState, startMatch }) {
         setMatchState(prev => ({
             ...prev,
             players: [...prev.players, newPlayer],
-            scores: { ...prev.scores, [newPlayer.id]: 0 } // Initialize score for host-player
+            scores: { ...prev.scores, [newPlayer.id]: 0 }
         }));
-        setPlayerName(''); // Clear input
-
+        setPlayerName('');
     };
 
     return (
@@ -31,7 +30,7 @@ function HostLobby({ roomCode, matchState, setMatchState, startMatch }) {
                     <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                         {matchState.players.map(player => (
                             <li key={player.id} className="bg-gray-700 text-gray-200 p-3 rounded-lg shadow-sm">
-                                {player.name}
+                                {player.name} {player.total_score !== undefined ? `(${player.total_score} pts)` : ''}
                             </li>
                         ))}
                     </ul>
@@ -40,15 +39,39 @@ function HostLobby({ roomCode, matchState, setMatchState, startMatch }) {
 
             <button
                 onClick={startMatch}
-                disabled={matchState.players.length === 0} // Disable if no players
+                disabled={matchState.players.length === 0 || matchState.matchDetails.game_sequence.length === 0} // Disable if no players or no games selected
                 className={`w-full text-white font-bold py-4 px-8 rounded-lg shadow-lg transition duration-300 transform hover:scale-105
-                    ${matchState.players.length === 0 ? 'bg-gray-500 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700'}`}
+                    ${matchState.players.length === 0 || matchState.matchDetails.game_sequence.length === 0 ? 'bg-gray-500 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700'}`}
             >
+                {/* --- FIX: Display total games from sequence length --- */}
                 Start Match ({matchState.totalGames} Games)
             </button>
-            {matchState.players.length === 0 && (
-                <p className="text-red-400 mt-2">At least one player must join to start the match.</p>
+            {(matchState.players.length === 0 || matchState.matchDetails.game_sequence.length === 0) && (
+                <p className="text-red-400 mt-2">
+                    {matchState.players.length === 0 ? 'At least one player must join.' : ''}
+                    {matchState.players.length === 0 && matchState.matchDetails.game_sequence.length === 0 ? ' And ' : ''}
+                    {matchState.matchDetails.game_sequence.length === 0 ? 'The match must have selected games.' : ''}
+                </p>
             )}
+            {/* Kept for your future local-only mode idea */}
+            {/*
+            <div className="border-t border-gray-700 pt-6 mt-6">
+                <h3 className="text-2xl font-semibold mb-3 text-white">Join as a Player (for Host Testing):</h3>
+                <input
+                    type="text"
+                    placeholder="Your Player Name"
+                    value={playerName}
+                    onChange={(e) => setPlayerName(e.target.value)}
+                    className="w-full p-3 mb-4 rounded-lg bg-gray-700 text-white placeholder-gray-400 border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                <button
+                    onClick={handleJoinAsHostPlayer}
+                    className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-6 rounded-lg shadow-md transition duration-300 transform hover:scale-105"
+                >
+                    Add Me as Player (Local Only)
+                </button>
+            </div>
+            */}
         </div>
     );
 }

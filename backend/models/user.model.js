@@ -16,7 +16,7 @@ const getUsers = () => new Promise((resolve, reject) => {
 });
 
 // Retrieve a single user by their ID
-const getUser = (userId) => new Promise((resolve, reject) => {
+const getUserById = (userId) => new Promise((resolve, reject) => {
     db.query('SELECT * FROM users WHERE id = ?', [parseInt(userId)], function (err, user) {
         if (err || (user || []).length === 0) {
             reject(err); // Reject if an error occurs or user not found
@@ -94,7 +94,7 @@ let deleteUser = (id) => new Promise((resolve, reject) => {
 // Export all functions so they can be used in other parts of the application
 module.exports = {
     getUsers,
-    getUser,
+    getUserById,
     createUser,
     deleteUser,
     updateUser

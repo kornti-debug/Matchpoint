@@ -13,11 +13,10 @@ import FinalResults from "./FinalResults.jsx";
 function MatchController({ isHost }) {
     const { roomCode } = useParams();
 
-    // Main state that controls everything
     const [matchState, setMatchState] = useState({
-        phase: 'lobby', // 'lobby', 'game', 'scoreboard', 'finished'
-        currentGame: 1,
-        totalGames: 15,
+        phase: 'loading', // Start as loading, will be set by fetchMatchDetails
+        currentGame: 0, // 0-based index
+        totalGames: 0, // Will be set from game_sequence length
         players: [],
         scores: {},
         matchDetails: {
@@ -25,25 +24,46 @@ function MatchController({ isHost }) {
             room_code: roomCode,
             id: null,
             host_id: null,
-            status: 'waiting',
-            current_game_number: 1,
+            status: 'loading', // Backend status
+            current_game_number: 0, // 0-based index
+            game_sequence: [], // Array of game IDs
         },
         gameData: null,
         isLoading: true,
         error: ''
     });
 
-    // --- NEW STATE VARIABLE ---
     const [isReviewingScoreboard, setIsReviewingScoreboard] = useState(false);
-    // --- END NEW STATE VARIABLE ---
 
-
-    // Function to fetch match details from the API service
+    // --- MODIFIED fetchMatchDetails for better persistence handling ---
     const fetchMatchDetails = useCallback(async () => {
         setMatchState(prev => ({ ...prev, isLoading: true, error: '' }));
         try {
             const apiResponse = await apiService.getMatchDetails(roomCode);
             const matchData = apiResponse.match;
+
+            // Determine frontend phase based on backend status
+            let newPhase;
+            let initialGameData = null;
+
+            if (matchData?.status === 'waiting') {
+                newPhase = 'lobby';
+            } else if (matchData?.status === 'in_progress') {
+                newPhase = 'game'; // Assume 'game' as default, might go to scoreboard if reviewing
+                // If match is in progress, immediately try to fetch the current game's data
+                if (matchData.game_sequence && matchData.game_sequence.length > matchData.current_game_number) {
+                    const currentGameId = matchData.game_sequence[matchData.current_game_number];
+                    initialGameData = await apiService.getGameData(currentGameId);
+                } else {
+                    // This scenario means in_progress but current_game_number is out of bounds or no sequence
+                    console.error("Match in_progress but current_game_number is invalid or no sequence:", matchData);
+                    newPhase = 'error'; // Fallback to error
+                }
+            } else if (matchData?.status === 'finished') {
+                newPhase = 'finished';
+            } else {
+                newPhase = 'error'; // Unknown status
+            }
 
             setMatchState(prev => ({
                 ...prev,
@@ -53,30 +73,30 @@ function MatchController({ isHost }) {
                     id: matchData?.id || null,
                     host_id: matchData?.host_id || null,
                     status: matchData?.status || 'waiting',
-                    current_game_number: matchData?.current_game_number || 1,
-                    ...matchData
+                    current_game_number: matchData?.current_game_number || 0, // Ensure 0-based index
+                    game_sequence: matchData?.game_sequence || [], // Ensure sequence is an array
+                    ...matchData // Spread remaining match details
                 },
                 players: matchData?.players || [],
                 scores: matchData?.scores || {},
-                phase: matchData?.status || 'lobby',
-                currentGame: matchData?.current_game_number || 1,
-                totalGames: 15,
+                phase: newPhase, // Set phase based on backend status
+                currentGame: matchData?.current_game_number || 0, // Keep 0-based index
+                totalGames: matchData?.game_sequence?.length || 0, // Total games is length of sequence
+                gameData: initialGameData, // Set game data if match is in progress
                 isLoading: false
             }));
-            console.log('MatchController: matchState after fetch:', apiResponse);
+            console.log('MatchController: matchState after fetch:', { apiResponse, matchData, newPhase });
 
-            if (matchData?.status === 'in_progress' && matchData?.current_game_number) {
-                const game = await apiService.getGameData(matchData.current_game_number);
-                setMatchState(prev => ({ ...prev, gameData: game }));
-            }
-
+            // Reset review flag on every load
+            setIsReviewingScoreboard(false);
 
         } catch (error) {
             console.error("Error fetching match details:", error);
             setMatchState(prev => ({
                 ...prev,
                 error: `Failed to load match details: ${error.message}`,
-                isLoading: false
+                isLoading: false,
+                phase: 'error' // Set phase to error
             }));
         }
     }, [roomCode]);
@@ -86,8 +106,6 @@ function MatchController({ isHost }) {
         fetchMatchDetails();
     }, [fetchMatchDetails]);
 
-
-    // --- Game Flow Control Functions (primarily for Host) ---
 
     const startMatch = async () => {
         if (matchState.phase !== 'lobby' && matchState.phase !== 'waiting') {
@@ -100,18 +118,33 @@ function MatchController({ isHost }) {
         }
 
         try {
-            // TODO: Implement actual backend call to start match and transition status
-            const gameData = await apiService.getGameData(1); // Fetch real game data
+            await apiService.startMatch(roomCode); // This updates status in DB
+
+            // Fetch first game's data using its ID from the sequence
+            const gameSequence = matchState.matchDetails.game_sequence;
+            if (!gameSequence || gameSequence.length === 0) {
+                console.error("Cannot start match: No game sequence found in match details.");
+                setMatchState(prev => ({ ...prev, error: "Match has no games selected. Please re-create." }));
+                return;
+            }
+            const firstGameId = gameSequence[0];
+            const game = await apiService.getGameData(firstGameId);
+
             setMatchState(prev => ({
                 ...prev,
                 phase: 'game',
-                currentGame: 1,
-                gameData: gameData,
-                scores: prev.players.reduce((acc, player) => ({...acc, [player.id]: prev.scores[player.id] || 0}), {})
+                currentGame: 0, // Set current game INDEX to 0
+                gameData: game, // Load fetched game data
+                // Initialize scores if not already done, or ensure all joined players are in scores
+                scores: prev.players.reduce((acc, player) => ({...acc, [player.id]: prev.scores[player.id] || 0}), {}),
+                matchDetails: {
+                    ...prev.matchDetails,
+                    status: 'in_progress',
+                    current_game_number: 0
+                }
             }));
-            // After starting, ensure we're not in review mode
-            setIsReviewingScoreboard(false); // <--- NEW: Reset this flag
-            console.log('Match started in frontend (mocked transition).');
+            setIsReviewingScoreboard(false);
+            console.log('Match started in frontend (real API call).');
 
         } catch (error) {
             console.error('Failed to start match:', error);
@@ -120,18 +153,21 @@ function MatchController({ isHost }) {
     };
 
 
-    const submitGameResults = async (winners, points) => {
+    const submitGameResults = async (winners) => { // Removed 'points' param
         if (!Array.isArray(winners) || winners.length === 0) {
             console.error("Submit Game Results: Invalid winners array.");
             return;
         }
 
+        // Calculate points based on game index (0-based index for game 0 gives 1 point)
+        const pointsAwarded = matchState.currentGame + 1;
+
         try {
             const { updatedPlayers, updatedScores } = await apiService.saveGameResults(
                 roomCode,
-                matchState.currentGame,
+                matchState.currentGame, // Pass the game index
                 winners,
-                points
+                pointsAwarded // Pass the calculated points
             );
 
             setMatchState(prev => ({
@@ -140,7 +176,6 @@ function MatchController({ isHost }) {
                 players: updatedPlayers,
                 phase: 'scoreboard'
             }));
-            // --- NEW: Set isReviewingScoreboard to false because we are ready to advance ---
             setIsReviewingScoreboard(false);
             console.log('Game results saved to DB (real API). Transitioning to Scoreboard for next game.');
 
@@ -151,30 +186,30 @@ function MatchController({ isHost }) {
     };
 
     const nextGame = async () => {
-        const nextGameNumber = matchState.currentGame + 1;
-
-        if (nextGameNumber > matchState.totalGames) {
-            setMatchState(prev => ({ ...prev, phase: 'finished' }));
-            setIsReviewingScoreboard(false); // <--- NEW: Reset this flag
-            return;
-        }
+        const nextGameIndex = matchState.currentGame + 1;
+        const totalGamesInSequence = matchState.matchDetails.game_sequence?.length || 0;
+        const isMatchFinished = nextGameIndex >= totalGamesInSequence;
 
         try {
-            // This is currently a mock call, but will eventually update match status in DB
-            const gameData = await apiService.getGameData(nextGameNumber); // Fetch real game data
+            const { newStatus, newCurrentGameNumber, gameData } = await apiService.nextGame(
+                roomCode,
+                nextGameIndex,
+                isMatchFinished
+            );
+
             setMatchState(prev => ({
                 ...prev,
-                phase: 'game',
-                currentGame: nextGameNumber,
-                gameData: gameData,
+                phase: newStatus === 'finished' ? 'finished' : 'game', // Use newStatus for phase
+                currentGame: newCurrentGameNumber,
+                gameData: gameData, // gameData will be null if finished
                 matchDetails: {
-                    ...prev.matchDetails, // Keep all other matchDetails properties
-                    current_game_number: nextGameNumber // Update this specific property
+                    ...prev.matchDetails,
+                    status: newStatus,
+                    current_game_number: newCurrentGameNumber
                 }
             }));
-            // After advancing, ensure we're not in review mode
-            setIsReviewingScoreboard(false); // <--- NEW: Reset this flag
-            console.log('Advanced to next game in frontend (mocked transition).');
+            setIsReviewingScoreboard(false);
+            console.log('Advanced to next game in frontend (real API call).');
 
         } catch (error) {
             console.error('Failed to load next game:', error);
@@ -182,15 +217,13 @@ function MatchController({ isHost }) {
         }
     };
 
-    // --- MODIFIED backToScoreboard function ---
     const backToScoreboard = () => {
         setMatchState(prev => ({ ...prev, phase: 'scoreboard' }));
-        // --- NEW: Set isReviewingScoreboard to true to indicate we're just reviewing ---
         setIsReviewingScoreboard(true);
         console.log('Returning to scoreboard for review.');
     };
 
-    // Conditional rendering based on loading state and errors
+
     if (matchState.isLoading) {
         return (
             <div className="min-h-screen bg-gray-900 text-gray-100 flex items-center justify-center text-3xl font-bold">
@@ -214,9 +247,19 @@ function MatchController({ isHost }) {
         );
     }
 
+    // --- Conditional Rendering based on phase ---
+    // Check for 'loading' phase explicitly
+    if (matchState.phase === 'loading') {
+        return (
+            <div className="min-h-screen bg-gray-900 text-gray-100 flex items-center justify-center text-3xl font-bold">
+                Loading Match...
+            </div>
+        );
+    }
+
     return (
         <div className="flex-grow flex items-center justify-center p-4">
-            {matchState.phase === 'lobby' || matchState.phase === 'waiting' ? (
+            {matchState.phase === 'lobby' && (
                 isHost ?
                     <HostLobby
                         roomCode={roomCode}
@@ -229,10 +272,9 @@ function MatchController({ isHost }) {
                         matchState={matchState}
                         setMatchState={setMatchState}
                     />
-            ) : null}
+            )}
 
-
-            {matchState.phase === 'game' && (
+            {matchState.phase === 'game' && matchState.gameData && ( // Ensure gameData exists to render GameView
                 <GameView
                     roomCode={roomCode}
                     matchState={matchState}
@@ -250,7 +292,6 @@ function MatchController({ isHost }) {
                     setMatchState={setMatchState}
                     isHost={isHost}
                     nextGame={nextGame}
-                    // --- NEW PROP: Pass isReviewingScoreboard to Scoreboard ---
                     isReviewingScoreboard={isReviewingScoreboard}
                 />
             )}
@@ -262,6 +303,20 @@ function MatchController({ isHost }) {
                     setMatchState={setMatchState}
                     isHost={isHost}
                 />
+            )}
+
+            {/* Fallback for unhandled phases or issues during rendering */}
+            {matchState.phase === 'error' && (
+                <div className="min-h-screen bg-gray-900 text-red-500 flex flex-col items-center justify-center text-xl p-4">
+                    <p className="mb-4 font-bold">An error occurred during match initialization or phase transition.</p>
+                    <p>{matchState.error}</p>
+                    <button
+                        onClick={fetchMatchDetails}
+                        className="mt-6 bg-red-700 hover:bg-red-800 text-white font-bold py-2 px-4 rounded-lg shadow-md transition duration-300"
+                    >
+                        Try Again
+                    </button>
+                </div>
             )}
         </div>
     );
