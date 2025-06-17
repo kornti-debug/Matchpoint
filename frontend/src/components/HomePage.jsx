@@ -18,6 +18,7 @@ function HomePage(){
             const data = await apiService.login(user,password)
             console.log("BIIIBO",   data)
             localStorage.setItem('token', data.token)
+            localStorage.setItem('userId', data.user.id.toString())
             navigate('/dashboard')
         } catch (error) {
             setError(error.message)

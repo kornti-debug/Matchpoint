@@ -14,9 +14,9 @@ function MatchController({ isHost }) {
     const { roomCode } = useParams();
 
     const [matchState, setMatchState] = useState({
-        phase: 'loading', // Start as loading, will be set by fetchMatchDetails
-        currentGame: 0, // 0-based index
-        totalGames: 0, // Will be set from game_sequence length
+        phase: 'loading',
+        currentGame: 0,
+        totalGames: 0,
         players: [],
         scores: {},
         matchDetails: {
@@ -24,9 +24,10 @@ function MatchController({ isHost }) {
             room_code: roomCode,
             id: null,
             host_id: null,
-            status: 'loading', // Backend status
-            current_game_number: 0, // 0-based index
-            game_sequence: [], // Array of game IDs
+            status: 'loading',
+            current_game_number: 0,
+            game_sequence: [],
+            winner_id: null, // Ensure winner_id is part of initial state
         },
         gameData: null,
         isLoading: true,
@@ -35,34 +36,30 @@ function MatchController({ isHost }) {
 
     const [isReviewingScoreboard, setIsReviewingScoreboard] = useState(false);
 
-    // --- MODIFIED fetchMatchDetails for better persistence handling ---
     const fetchMatchDetails = useCallback(async () => {
         setMatchState(prev => ({ ...prev, isLoading: true, error: '' }));
         try {
             const apiResponse = await apiService.getMatchDetails(roomCode);
             const matchData = apiResponse.match;
 
-            // Determine frontend phase based on backend status
             let newPhase;
             let initialGameData = null;
 
             if (matchData?.status === 'waiting') {
                 newPhase = 'lobby';
             } else if (matchData?.status === 'in_progress') {
-                newPhase = 'game'; // Assume 'game' as default, might go to scoreboard if reviewing
-                // If match is in progress, immediately try to fetch the current game's data
+                newPhase = 'game'; // Default to game view if in progress
                 if (matchData.game_sequence && matchData.game_sequence.length > matchData.current_game_number) {
                     const currentGameId = matchData.game_sequence[matchData.current_game_number];
                     initialGameData = await apiService.getGameData(currentGameId);
                 } else {
-                    // This scenario means in_progress but current_game_number is out of bounds or no sequence
                     console.error("Match in_progress but current_game_number is invalid or no sequence:", matchData);
-                    newPhase = 'error'; // Fallback to error
+                    newPhase = 'error';
                 }
             } else if (matchData?.status === 'finished') {
-                newPhase = 'finished';
+                newPhase = 'finished'; // If finished, go directly to final results
             } else {
-                newPhase = 'error'; // Unknown status
+                newPhase = 'error';
             }
 
             setMatchState(prev => ({
@@ -73,21 +70,21 @@ function MatchController({ isHost }) {
                     id: matchData?.id || null,
                     host_id: matchData?.host_id || null,
                     status: matchData?.status || 'waiting',
-                    current_game_number: matchData?.current_game_number || 0, // Ensure 0-based index
-                    game_sequence: matchData?.game_sequence || [], // Ensure sequence is an array
-                    ...matchData // Spread remaining match details
+                    current_game_number: matchData?.current_game_number || 0,
+                    game_sequence: matchData?.game_sequence || [],
+                    winner_id: matchData?.winner_id || null, // <-- Ensure winner_id is fetched
+                    ...matchData
                 },
                 players: matchData?.players || [],
                 scores: matchData?.scores || {},
-                phase: newPhase, // Set phase based on backend status
-                currentGame: matchData?.current_game_number || 0, // Keep 0-based index
-                totalGames: matchData?.game_sequence?.length || 0, // Total games is length of sequence
-                gameData: initialGameData, // Set game data if match is in progress
+                phase: newPhase,
+                currentGame: matchData?.current_game_number || 0,
+                totalGames: matchData?.game_sequence?.length || 0,
+                gameData: initialGameData,
                 isLoading: false
             }));
             console.log('MatchController: matchState after fetch:', { apiResponse, matchData, newPhase });
 
-            // Reset review flag on every load
             setIsReviewingScoreboard(false);
 
         } catch (error) {
@@ -96,7 +93,7 @@ function MatchController({ isHost }) {
                 ...prev,
                 error: `Failed to load match details: ${error.message}`,
                 isLoading: false,
-                phase: 'error' // Set phase to error
+                phase: 'error'
             }));
         }
     }, [roomCode]);
@@ -118,9 +115,8 @@ function MatchController({ isHost }) {
         }
 
         try {
-            await apiService.startMatch(roomCode); // This updates status in DB
+            await apiService.startMatch(roomCode);
 
-            // Fetch first game's data using its ID from the sequence
             const gameSequence = matchState.matchDetails.game_sequence;
             if (!gameSequence || gameSequence.length === 0) {
                 console.error("Cannot start match: No game sequence found in match details.");
@@ -133,9 +129,8 @@ function MatchController({ isHost }) {
             setMatchState(prev => ({
                 ...prev,
                 phase: 'game',
-                currentGame: 0, // Set current game INDEX to 0
-                gameData: game, // Load fetched game data
-                // Initialize scores if not already done, or ensure all joined players are in scores
+                currentGame: 0,
+                gameData: game,
                 scores: prev.players.reduce((acc, player) => ({...acc, [player.id]: prev.scores[player.id] || 0}), {}),
                 matchDetails: {
                     ...prev.matchDetails,
@@ -153,31 +148,57 @@ function MatchController({ isHost }) {
     };
 
 
-    const submitGameResults = async (winners) => { // Removed 'points' param
+    const submitGameResults = async (winners) => {
         if (!Array.isArray(winners) || winners.length === 0) {
             console.error("Submit Game Results: Invalid winners array.");
             return;
         }
 
-        // Calculate points based on game index (0-based index for game 0 gives 1 point)
-        const pointsAwarded = matchState.currentGame + 1;
+        const pointsAwarded = matchState.currentGame + 1; // 0-indexed game 0 gives 1 point
+
+        // --- NEW LOGIC: Check if this is the last game ---
+        const isLastGame = (matchState.currentGame + 1) >= matchState.totalGames;
+        let nextStatus = isLastGame ? 'finished' : 'scoreboard'; // If last game, go to finished, else scoreboard
+        // --- END NEW LOGIC ---
 
         try {
+            // Save results to DB (this call updates scores in match_players)
             const { updatedPlayers, updatedScores } = await apiService.saveGameResults(
                 roomCode,
-                matchState.currentGame, // Pass the game index
+                matchState.currentGame,
                 winners,
-                pointsAwarded // Pass the calculated points
+                pointsAwarded
             );
+
+            // If it's the last game, we also need to update the match status in the DB to 'finished'
+            // and trigger the final winner calculation/storage via nextGame API endpoint.
+            // We call nextGame here to ensure backend transitions match status to 'finished' and records winner_id.
+            if (isLastGame) {
+                const { newStatus, newCurrentGameNumber, gameData } = await apiService.nextGame(
+                    roomCode,
+                    matchState.totalGames, // Use totalGames as the final index for 'finished' status
+                    true // isMatchFinished = true
+                );
+                nextStatus = newStatus; // Ensure frontend phase matches backend's final status
+                console.log('Last game submitted. Backend transitioned match to:', newStatus);
+
+                // --- IMPORTANT: Trigger a fresh fetch for FinalResults to get winner_id ---
+                // After the match is set to 'finished' by the backend, refetch details
+                // to ensure we get the winner_id for display.
+                await fetchMatchDetails(); // This will re-populate matchState with latest winner_id etc.
+                // The phase will then be 'finished' from the refetch.
+            }
+
 
             setMatchState(prev => ({
                 ...prev,
                 scores: updatedScores,
                 players: updatedPlayers,
-                phase: 'scoreboard'
+                phase: nextStatus // Set phase to 'finished' if it's the last game, else 'scoreboard'
             }));
             setIsReviewingScoreboard(false);
-            console.log('Game results saved to DB (real API). Transitioning to Scoreboard for next game.');
+            console.log('Game results saved. Transitioning to:', nextStatus);
+
 
         } catch (error) {
             console.error('Failed to submit results:', error);
@@ -191,6 +212,7 @@ function MatchController({ isHost }) {
         const isMatchFinished = nextGameIndex >= totalGamesInSequence;
 
         try {
+            // Call backend to advance match status and get next game data
             const { newStatus, newCurrentGameNumber, gameData } = await apiService.nextGame(
                 roomCode,
                 nextGameIndex,
@@ -199,9 +221,9 @@ function MatchController({ isHost }) {
 
             setMatchState(prev => ({
                 ...prev,
-                phase: newStatus === 'finished' ? 'finished' : 'game', // Use newStatus for phase
+                phase: newStatus === 'finished' ? 'finished' : 'game',
                 currentGame: newCurrentGameNumber,
-                gameData: gameData, // gameData will be null if finished
+                gameData: gameData,
                 matchDetails: {
                     ...prev.matchDetails,
                     status: newStatus,
@@ -232,7 +254,7 @@ function MatchController({ isHost }) {
         );
     }
 
-    if (matchState.error) {
+    if (matchState.error && matchState.phase !== 'error') { // Only show generic loading error if not explicitly in error phase
         return (
             <div className="min-h-screen bg-gray-900 text-red-500 flex flex-col items-center justify-center text-xl p-4">
                 <p className="mb-4 font-bold">Error:</p>
@@ -243,16 +265,6 @@ function MatchController({ isHost }) {
                 >
                     Try Again
                 </button>
-            </div>
-        );
-    }
-
-    // --- Conditional Rendering based on phase ---
-    // Check for 'loading' phase explicitly
-    if (matchState.phase === 'loading') {
-        return (
-            <div className="min-h-screen bg-gray-900 text-gray-100 flex items-center justify-center text-3xl font-bold">
-                Loading Match...
             </div>
         );
     }
@@ -274,7 +286,7 @@ function MatchController({ isHost }) {
                     />
             )}
 
-            {matchState.phase === 'game' && matchState.gameData && ( // Ensure gameData exists to render GameView
+            {matchState.phase === 'game' && matchState.gameData && (
                 <GameView
                     roomCode={roomCode}
                     matchState={matchState}
@@ -305,7 +317,6 @@ function MatchController({ isHost }) {
                 />
             )}
 
-            {/* Fallback for unhandled phases or issues during rendering */}
             {matchState.phase === 'error' && (
                 <div className="min-h-screen bg-gray-900 text-red-500 flex flex-col items-center justify-center text-xl p-4">
                     <p className="mb-4 font-bold">An error occurred during match initialization or phase transition.</p>

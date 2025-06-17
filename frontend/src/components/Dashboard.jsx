@@ -8,12 +8,12 @@ function Dashboard() {
     const [message, setMessage] = useState('');
     const [roomCodeInput, setRoomCodeInput] = useState('');
     const [isCreatingMatch, setIsCreatingMatch] = useState(false);
-    const [isJoiningMatch, setIsJoiningMatch] = useState(false); // New state for join button loading
+    const [isJoiningMatch, setIsJoiningMatch] = useState(false); // State for join button loading
     const navigate = useNavigate();
 
     // State for game selection
     const [availableGames, setAvailableGames] = useState([]);
-    const [selectedGameIds, setSelectedGameIds] = useState([]); // This will store the ordered IDs
+    const [selectedGameIds, setSelectedGameIds] = useState([]);
     const [loadingGames, setLoadingGames] = useState(true);
     const [gamesError, setGamesError] = useState('');
 
@@ -24,9 +24,8 @@ function Dashboard() {
             setGamesError('');
             try {
                 const responseData = await apiService.getAllGames();
-                const games = responseData.games; // <--- This line extracts the actual array
-                // Filter out any games that might have invalid IDs or duplicate game_numbers if necessary
-                setAvailableGames(games.sort((a, b) => a.game_number - b.game_number)); // Sort by game_number for display
+                const games = responseData.games;
+                setAvailableGames(games.sort((a, b) => a.game_number - b.game_number));
             } catch (err) {
                 setGamesError(err.message || 'Failed to load available games.');
                 console.error('Error fetching available games:', err);
@@ -35,10 +34,10 @@ function Dashboard() {
             }
         };
         fetchGames();
-    }, []); // Empty dependency array means run once on mount
+    }, []);
 
     const handleCreateMatch = async (e) => {
-        e.preventDefault(); // Prevent default form submission behavior
+        e.preventDefault();
 
         if (!matchName.trim()) {
             setMessage('Match name cannot be empty.');
@@ -53,11 +52,11 @@ function Dashboard() {
         setMessage('');
 
         try {
-            const result = await apiService.createMatch(matchName, selectedGameIds); // Pass selectedGameIds
+            const result = await apiService.createMatch(matchName, selectedGameIds);
             setMessage(`Match created! Room Code: ${result.roomCode}`);
             setMatchName('');
-            setSelectedGameIds([]); // Clear selected games
-            navigate(`/match/${result.roomCode}/host`); // Navigate to host lobby
+            setSelectedGameIds([]);
+            navigate(`/match/${result.roomCode}/host`);
         } catch (error) {
             console.error("Error creating match:", error);
             setMessage(`Failed to create match: ${error.message}`);
@@ -66,8 +65,9 @@ function Dashboard() {
         }
     };
 
+    // --- MODIFIED handleJoinMatch function ---
     const handleJoinMatch = async (e) => {
-        e.preventDefault(); // Prevent default form submission behavior
+        e.preventDefault();
 
         if (!roomCodeInput.trim()) {
             setMessage('Room code cannot be empty.');
@@ -78,8 +78,13 @@ function Dashboard() {
         setMessage('');
 
         try {
-            // No need for a separate join API call here, just navigate
-            // The MatchController will handle fetching details and joining player
+            // --- CRUCIAL CHANGE: Call joinMatch API here directly from Dashboard ---
+            // This ensures the player is registered in the backend BEFORE navigating
+            const playerJoinResult = await apiService.joinMatch(roomCodeInput.trim());
+            console.log("Dashboard: Player joined match via API:", playerJoinResult);
+
+            // Now, navigate to the player lobby, which will fetch updated match details
+            // and the PlayerLobby component will recognize the joined player.
             navigate(`/match/${roomCodeInput.trim()}/player`);
         } catch (error) {
             console.error("Error joining match:", error);
@@ -88,6 +93,7 @@ function Dashboard() {
             setIsJoiningMatch(false);
         }
     };
+    // --- END MODIFIED handleJoinMatch ---
 
     return (
         <div className="min-h-[calc(100vh-120px)] flex flex-col items-center justify-center p-4">
