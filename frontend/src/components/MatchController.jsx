@@ -1,7 +1,13 @@
 // components/MatchController.jsx
-import {useEffect, useState, useCallback} from "react";
-import {useParams} from "react-router-dom";
+import { useEffect, useState, useCallback } from "react";
+import { useParams } from "react-router-dom";
 import * as apiService from "../services/apiService.js";
+import {
+    connectSocket,
+    disconnectSocket,
+    onSocketEvent,
+    offSocketEvent
+} from "../services/socketClient.js";
 
 // Import your components
 import HostLobby from "./HostLobby.jsx";
@@ -27,7 +33,7 @@ function MatchController({ isHost }) {
             status: 'loading',
             current_game_number: 0,
             game_sequence: [],
-            winner_id: null, // Ensure winner_id is part of initial state
+            winner_id: null,
         },
         gameData: null,
         isLoading: true,
@@ -36,11 +42,18 @@ function MatchController({ isHost }) {
 
     const [isReviewingScoreboard, setIsReviewingScoreboard] = useState(false);
 
+    // Function to fetch match details from the API service
     const fetchMatchDetails = useCallback(async () => {
         setMatchState(prev => ({ ...prev, isLoading: true, error: '' }));
         try {
             const apiResponse = await apiService.getMatchDetails(roomCode);
-            const matchData = apiResponse.match;
+            const matchData = apiResponse.match; // Extract the 'match' object
+
+            // --- DEBUG: Console logs for clarity ---
+            console.log('MatchController: fetchMatchDetails - Raw API Response:', apiResponse);
+            console.log('MatchController: fetchMatchDetails - Extracted MatchData:', matchData);
+            console.log('MatchController: fetchMatchDetails - Game Sequence (from MatchData):', matchData?.game_sequence, 'Type:', typeof matchData?.game_sequence, 'Is Array:', Array.isArray(matchData?.game_sequence));
+            // --- END DEBUG ---
 
             let newPhase;
             let initialGameData = null;
@@ -48,18 +61,24 @@ function MatchController({ isHost }) {
             if (matchData?.status === 'waiting') {
                 newPhase = 'lobby';
             } else if (matchData?.status === 'in_progress') {
-                newPhase = 'game'; // Default to game view if in progress
-                if (matchData.game_sequence && matchData.game_sequence.length > matchData.current_game_number) {
+                // CRITICAL FIX: If host explicitly set to review scoreboard (via submitGameResults or backToScoreboard), maintain that phase.
+                // Otherwise, if backend says 'in_progress' and we are not reviewing, we display the current game.
+                newPhase = isReviewingScoreboard ? 'scoreboard' : 'game';
+
+                // Fetch game data only if transitioning to the 'game' phase (i.e., not reviewing scoreboard).
+                if (newPhase === 'game' && Array.isArray(matchData.game_sequence) && matchData.game_sequence.length > matchData.current_game_number && matchData.current_game_number >= 0) {
                     const currentGameId = matchData.game_sequence[matchData.current_game_number];
-                    initialGameData = await apiService.getGameData(currentGameId);
-                } else {
-                    console.error("Match in_progress but current_game_number is invalid or no sequence:", matchData);
+                    console.log(`MatchController: fetchMatchDetails - Attempting to get game data for ID: ${currentGameId}`);
+                    initialGameData = await apiService.getGameData(currentGameId); // Use the correct API call
+                    console.log(`MatchController: fetchMatchDetails - Successfully got gameData for ID ${currentGameId}:`, initialGameData);
+                } else if (newPhase === 'game') { // This specific else if is for the case where game sequence is bad
+                    console.error("MatchController: fetchMatchDetails - Match in_progress but current_game_number is invalid or no sequence (for game data fetch):", matchData);
                     newPhase = 'error';
                 }
             } else if (matchData?.status === 'finished') {
                 newPhase = 'finished'; // If finished, go directly to final results
             } else {
-                newPhase = 'error';
+                newPhase = 'error'; // Unknown status
             }
 
             setMatchState(prev => ({
@@ -71,24 +90,28 @@ function MatchController({ isHost }) {
                     host_id: matchData?.host_id || null,
                     status: matchData?.status || 'waiting',
                     current_game_number: matchData?.current_game_number || 0,
-                    game_sequence: matchData?.game_sequence || [],
-                    winner_id: matchData?.winner_id || null, // <-- Ensure winner_id is fetched
-                    ...matchData
+                    game_sequence: Array.isArray(matchData?.game_sequence) ? matchData.game_sequence : [], // Ensure it's an array
+                    winner_id: matchData?.winner_id || null,
                 },
                 players: matchData?.players || [],
                 scores: matchData?.scores || {},
                 phase: newPhase,
                 currentGame: matchData?.current_game_number || 0,
-                totalGames: matchData?.game_sequence?.length || 0,
+                totalGames: Array.isArray(matchData?.game_sequence) ? matchData.game_sequence.length : 0, // Calculate totalGames
                 gameData: initialGameData,
                 isLoading: false
             }));
-            console.log('MatchController: matchState after fetch:', { apiResponse, matchData, newPhase });
+            console.log('MatchController: matchState after fetch (final state set):', { apiResponse, matchData, newPhase });
 
-            setIsReviewingScoreboard(false);
+            // Only reset isReviewingScoreboard if we actually transitioned away from a scoreboard state
+            // or if the backend status changed to 'finished' or 'waiting' (not 'in_progress').
+            // This prevents `fetchMatchDetails` from prematurely setting it to false if the host JUST clicked submit.
+            if (newPhase !== 'scoreboard' && matchData?.status !== 'in_progress') { // Removed redundant `&& matchData?.status !== 'in_progress'`
+                setIsReviewingScoreboard(false);
+            }
 
         } catch (error) {
-            console.error("Error fetching match details:", error);
+            console.error("MatchController: Error in fetchMatchDetails caught block:", error);
             setMatchState(prev => ({
                 ...prev,
                 error: `Failed to load match details: ${error.message}`,
@@ -96,155 +119,166 @@ function MatchController({ isHost }) {
                 phase: 'error'
             }));
         }
-    }, [roomCode]);
+    }, [roomCode, isReviewingScoreboard]); // Add isReviewingScoreboard as a dependency
 
-    useEffect(() => {
-        console.log('MatchController mounted with roomCode:', roomCode);
+
+    // --- WebSocket Integration useEffect ---
+    const handleSocketIoMessage = useCallback((message) => {
+        console.log("MatchController: WebSocket Message Received:", message);
+        // Any match-related update from WebSocket triggers a full re-fetch to re-sync UI.
         fetchMatchDetails();
     }, [fetchMatchDetails]);
 
+    useEffect(() => {
+        console.log('MatchController: Setting up WebSocket connection for room:', roomCode);
+        connectSocket(roomCode);
+
+        // Listen for the generic 'match_event' that your backend broadcasts
+        onSocketEvent('match_event', handleSocketIoMessage);
+
+        // Cleanup: Disconnect socket and remove listener when component unmounts
+        return () => {
+            console.log('MatchController: Cleaning up WebSocket connection for room:', roomCode);
+            disconnectSocket(roomCode);
+            offSocketEvent('match_event', handleSocketIoMessage);
+        };
+    }, [roomCode, handleSocketIoMessage]);
+
+
+    // Initial data fetch on component mount
+    useEffect(() => {
+        console.log('MatchController: Initial data fetch triggered on mount.');
+        fetchMatchDetails();
+    }, [fetchMatchDetails]); // Only re-run if fetchMatchDetails changes (due to useCallback deps)
+
+
+    // --- Game Flow Control Functions ---
+    // These functions initiate API calls. The backend will then broadcast via WebSocket.
+    // The `handleSocketIoMessage` will then trigger `fetchMatchDetails` to update the UI.
 
     const startMatch = async () => {
-        if (matchState.phase !== 'lobby' && matchState.phase !== 'waiting') {
-            console.warn("Cannot start match: Not in lobby/waiting phase.");
+        // Ensure phase and status are correct for starting
+        if (matchState.phase !== 'lobby' || matchState.matchDetails.status !== 'waiting') {
+            console.warn("MatchController: Cannot start match: Not in lobby/waiting phase.");
             return;
         }
         if (matchState.players.length === 0) {
-            console.warn("Cannot start match: No players have joined yet.");
+            console.warn("MatchController: Cannot start match: No players have joined yet.");
+            return;
+        }
+        if (!matchState.matchDetails.id) {
+            console.error("MatchController: Cannot start match: Match ID not available.");
+            return;
+        }
+        if (!matchState.matchDetails.game_sequence || matchState.matchDetails.game_sequence.length === 0) {
+            console.error("MatchController: Cannot start match: No game sequence found in match details.");
+            setMatchState(prev => ({ ...prev, error: "Match has no games selected. Please re-create." }));
             return;
         }
 
         try {
             await apiService.startMatch(roomCode);
-
-            const gameSequence = matchState.matchDetails.game_sequence;
-            if (!gameSequence || gameSequence.length === 0) {
-                console.error("Cannot start match: No game sequence found in match details.");
-                setMatchState(prev => ({ ...prev, error: "Match has no games selected. Please re-create." }));
-                return;
-            }
-            const firstGameId = gameSequence[0];
-            const game = await apiService.getGameData(firstGameId);
-
-            setMatchState(prev => ({
-                ...prev,
-                phase: 'game',
-                currentGame: 0,
-                gameData: game,
-                scores: prev.players.reduce((acc, player) => ({...acc, [player.id]: prev.scores[player.id] || 0}), {}),
-                matchDetails: {
-                    ...prev.matchDetails,
-                    status: 'in_progress',
-                    current_game_number: 0
-                }
-            }));
-            setIsReviewingScoreboard(false);
-            console.log('Match started in frontend (real API call).');
-
+            console.log('MatchController: API call to start match sent. Expecting WebSocket sync for UI update.');
         } catch (error) {
-            console.error('Failed to start match:', error);
+            console.error('MatchController: Failed to start match (API error):', error);
             setMatchState(prev => ({ ...prev, error: `Failed to start match: ${error.message}` }));
         }
     };
 
 
-    const submitGameResults = async (winners) => {
+    const submitGameResults = async (winners, pointsToAward) => { // 'pointsToAward' is the value sent from GameView (e.g., currentGameIndex + 1)
         if (!Array.isArray(winners) || winners.length === 0) {
-            console.error("Submit Game Results: Invalid winners array.");
+            console.error("MatchController: Submit Game Results - Invalid winners array.");
+            return;
+        }
+        if (!matchState.matchDetails.id) {
+            console.error("MatchController: Submit Game Results - Match ID not available.");
             return;
         }
 
-        const pointsAwarded = matchState.currentGame + 1; // 0-indexed game 0 gives 1 point
-
-        // --- NEW LOGIC: Check if this is the last game ---
         const isLastGame = (matchState.currentGame + 1) >= matchState.totalGames;
-        let nextStatus = isLastGame ? 'finished' : 'scoreboard'; // If last game, go to finished, else scoreboard
-        // --- END NEW LOGIC ---
 
         try {
-            // Save results to DB (this call updates scores in match_players)
-            const { updatedPlayers, updatedScores } = await apiService.saveGameResults(
+            await apiService.submitGameResults(
                 roomCode,
-                matchState.currentGame,
+                matchState.currentGame, // This is the 0-indexed game number (index)
                 winners,
-                pointsAwarded
+                pointsToAward // Use the explicitly determined points from GameView or here
             );
+            console.log(`MatchController: API call to submit game results sent with ${pointsToAward} points. Expecting WebSocket sync for scores update.`);
 
-            // If it's the last game, we also need to update the match status in the DB to 'finished'
-            // and trigger the final winner calculation/storage via nextGame API endpoint.
-            // We call nextGame here to ensure backend transitions match status to 'finished' and records winner_id.
+            // --- CRITICAL FIX: Explicitly transition to scoreboard OR finish match locally ---
             if (isLastGame) {
-                const { newStatus, newCurrentGameNumber, gameData } = await apiService.nextGame(
-                    roomCode,
-                    matchState.totalGames, // Use totalGames as the final index for 'finished' status
-                    true // isMatchFinished = true
-                );
-                nextStatus = newStatus; // Ensure frontend phase matches backend's final status
-                console.log('Last game submitted. Backend transitioned match to:', newStatus);
-
-                // --- IMPORTANT: Trigger a fresh fetch for FinalResults to get winner_id ---
-                // After the match is set to 'finished' by the backend, refetch details
-                // to ensure we get the winner_id for display.
-                await fetchMatchDetails(); // This will re-populate matchState with latest winner_id etc.
-                // The phase will then be 'finished' from the refetch.
+                console.log('MatchController: Last game submitted. Triggering nextGame API call to finish match.');
+                // This call will update backend status to 'finished', which will then trigger fetchMatchDetails to change phase to 'finished'
+                await apiService.nextGame(roomCode, matchState.totalGames, true);
+                setIsReviewingScoreboard(false); // Reset for final results
+            } else {
+                // If not the last game, transition to scoreboard locally for the host.
+                // This ensures immediate UI feedback for the host without waiting for backend's next game status change.
+                setMatchState(prev => ({ ...prev, phase: 'scoreboard' }));
+                setIsReviewingScoreboard(true); // Indicate that host is now reviewing scoreboard
+                console.log('MatchController: Game results submitted. Transitioning to scoreboard locally for host.');
             }
-
-
-            setMatchState(prev => ({
-                ...prev,
-                scores: updatedScores,
-                players: updatedPlayers,
-                phase: nextStatus // Set phase to 'finished' if it's the last game, else 'scoreboard'
-            }));
-            setIsReviewingScoreboard(false);
-            console.log('Game results saved. Transitioning to:', nextStatus);
-
+            // --- END CRITICAL FIX ---
 
         } catch (error) {
-            console.error('Failed to submit results:', error);
+            console.error('MatchController: Failed to submit results (API error):', error);
             setMatchState(prev => ({ ...prev, error: `Failed to submit results: ${error.message}` }));
         }
     };
 
     const nextGame = async () => {
-        const nextGameIndex = matchState.currentGame + 1;
+        const nextGameIndex = matchState.currentGame + 1; // This is the next 0-indexed game number (index)
         const totalGamesInSequence = matchState.matchDetails.game_sequence?.length || 0;
         const isMatchFinished = nextGameIndex >= totalGamesInSequence;
 
+        if (!matchState.matchDetails.id) {
+            console.error("MatchController: Next Game - Match ID not available.");
+            return;
+        }
+
         try {
-            // Call backend to advance match status and get next game data
-            const { newStatus, newCurrentGameNumber, gameData } = await apiService.nextGame(
+            await apiService.nextGame(
                 roomCode,
-                nextGameIndex,
+                nextGameIndex, // Pass the 0-indexed index of the NEXT game
                 isMatchFinished
             );
+            console.log('MatchController: API call to advance to next game sent. Expecting WebSocket sync for UI update.');
 
-            setMatchState(prev => ({
-                ...prev,
-                phase: newStatus === 'finished' ? 'finished' : 'game',
-                currentGame: newCurrentGameNumber,
-                gameData: gameData,
-                matchDetails: {
-                    ...prev.matchDetails,
-                    status: newStatus,
-                    current_game_number: newCurrentGameNumber
-                }
-            }));
-            setIsReviewingScoreboard(false);
-            console.log('Advanced to next game in frontend (real API call).');
-
+            // After successful nextGame API call (which updates backend status),
+            // fetchMatchDetails (triggered by WebSocket) will handle the phase transition
+            // to 'game' for the next game, or 'finished' if it's the end.
+            setIsReviewingScoreboard(false); // Reset this flag as we are now moving past scoreboard review (to next game or final results)
         } catch (error) {
-            console.error('Failed to load next game:', error);
+            console.error('MatchController: Failed to load next game (API error):', error);
             setMatchState(prev => ({ ...prev, error: `Failed to load next game: ${error.message}` }));
         }
     };
 
     const backToScoreboard = () => {
+        // This is a local UI change for the host to review the scoreboard.
         setMatchState(prev => ({ ...prev, phase: 'scoreboard' }));
-        setIsReviewingScoreboard(true);
-        console.log('Returning to scoreboard for review.');
+        setIsReviewingScoreboard(true); // Set to true when entering scoreboard review
+        console.log('MatchController: Returning to scoreboard for review (local UI).');
     };
 
+    const updateMatchNameHandler = async (newMatchName) => {
+        if (!matchState.matchDetails.id) {
+            console.error("MatchController: Update Match Name - Match ID not available.");
+            return;
+        }
+        try {
+            await apiService.updateMatchName(roomCode, newMatchName);
+            console.log('MatchController: API call to update match name sent. Expecting WebSocket sync.');
+        } catch (error) {
+            console.error('MatchController: Error updating match name (API error):', error);
+            throw error;
+        }
+    };
+
+
+    // --- Conditional Rendering for different match phases/states ---
 
     if (matchState.isLoading) {
         return (
@@ -254,7 +288,7 @@ function MatchController({ isHost }) {
         );
     }
 
-    if (matchState.error && matchState.phase !== 'error') { // Only show generic loading error if not explicitly in error phase
+    if (matchState.error && matchState.phase !== 'error') {
         return (
             <div className="min-h-screen bg-gray-900 text-red-500 flex flex-col items-center justify-center text-xl p-4">
                 <p className="mb-4 font-bold">Error:</p>
@@ -271,6 +305,8 @@ function MatchController({ isHost }) {
 
     return (
         <div className="flex-grow flex items-center justify-center p-4">
+            {/* The small top-left debug header is now removed definitively */}
+
             {matchState.phase === 'lobby' && (
                 isHost ?
                     <HostLobby
@@ -278,6 +314,7 @@ function MatchController({ isHost }) {
                         matchState={matchState}
                         setMatchState={setMatchState}
                         startMatch={startMatch}
+                        updateMatchName={updateMatchNameHandler}
                     /> :
                     <PlayerLobby
                         roomCode={roomCode}
@@ -297,6 +334,7 @@ function MatchController({ isHost }) {
                 />
             )}
 
+            {/* Render Scoreboard explicitly when phase is 'scoreboard' */}
             {matchState.phase === 'scoreboard' && (
                 <Scoreboard
                     roomCode={roomCode}

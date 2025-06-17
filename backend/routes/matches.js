@@ -21,8 +21,9 @@ router.post('/:roomCode/join', matchController.joinMatch);
 // Submit game results for a match
 router.post('/:roomCode/results', matchController.submitGameResults);
 
-// Get game details by ID (used for current game display, still uses :gameNumber param name)
-router.get('/games/:gameNumber', matchController.getGameData); // NOTE: :gameNumber in URL here is treated as GAME_ID
+// Get game details by ID (used for current game display)
+// NOTE: Renamed param from :gameNumber to :gameId for clarity and consistency with controller
+router.get('/games/:gameId', matchController.getGameData);
 
 // Start a match (sets status to 'in_progress', current_game_number to 0)
 router.post('/:roomCode/start', matchController.startMatch);

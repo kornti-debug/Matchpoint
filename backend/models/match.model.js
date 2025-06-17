@@ -7,13 +7,17 @@ const generateRoomCode = () => {
 };
 
 /**
- * Creates a new match in the database with an optional game sequence.
+ * Creates a new match in the database with a specified game sequence.
  * @param {string} matchName - Name of the match.
  * @param {number} hostId - ID of the host user.
  * @param {Array<number>} [gameSequence=[]] - Optional array of game IDs for the match sequence.
  */
 const createMatch = (matchName, hostId, gameSequence = []) => new Promise((resolve, reject) => {
     const roomCode = generateRoomCode();
+    // CRITICAL: Ensure gameSequence is stored as a JSON string for the DB.
+    // The DB driver will parse it back when retrieved if the column is JSON type.
+    const gameSequenceJson = gameSequence.length > 0 ? JSON.stringify(gameSequence) : null;
+
     const sql = `
         INSERT INTO matches (host_id, room_code, status, matchname, current_game_number, game_sequence)
         VALUES (?, ?, ?, ?, ?, ?)
@@ -24,7 +28,7 @@ const createMatch = (matchName, hostId, gameSequence = []) => new Promise((resol
         'waiting',
         matchName,
         0, // Start at game index 0 (first game in sequence)
-        gameSequence.length > 0 ? JSON.stringify(gameSequence) : null // Store as JSON string or NULL
+        gameSequenceJson
     ];
 
     db.query(sql, params, function (err, result) {
@@ -36,7 +40,7 @@ const createMatch = (matchName, hostId, gameSequence = []) => new Promise((resol
                 id: result.insertId,
                 room_code: roomCode,
                 status: 'waiting',
-                current_game_number: 0, // Resolve with index 0
+                current_game_number: 0,
                 matchname: matchName,
                 game_sequence: gameSequence // Return the original array for consistency
             });
@@ -52,26 +56,26 @@ const getMatchByRoomCode = (roomCode) => new Promise((resolve, reject) => {
 
     db.query(sql, [roomCode], function (err, result) {
         if (err) {
-            console.error('Database error:', err);
+            console.error('Database error fetching match by roomCode:', err);
             return reject(err);
         } else if (result.length === 0) {
             console.log('No match found for room code:', roomCode);
             return reject(new Error('Match not found'));
         } else {
-            console.log('Match found, returning:', result[0]);
+            console.log('Match found, raw data from DB:', result[0]);
             const match = result[0];
 
-            // --- FIX HERE: Remove JSON.parse() as the driver already does it ---
-            // match.game_sequence is ALREADY a JavaScript Array (or null/undefined)
-            const parsedGameSequence = match.game_sequence || [];
-            // --- END FIX ---
+            // CRITICAL: Rely on the database driver to parse the JSON column type.
+            // If the column type is JSON, `match.game_sequence` will already be a JS array/object.
+            // If it's `null` from DB, it means no sequence was set, so default to empty array.
+            const parsedGameSequence = Array.isArray(match.game_sequence) ? match.game_sequence : [];
 
             const playersSql = `
                 SELECT mp.id AS id, mp.user_id, u.username AS name, mp.total_score
                 FROM match_players AS mp
-                         JOIN users AS u ON mp.user_id = u.id
+                JOIN users AS u ON mp.user_id = u.id
                 WHERE mp.match_id = ?
-                ORDER BY mp.joined_at ASC`;
+                ORDER BY mp.joined_at ASC`; // Order by joined_at as in your commit
 
             db.query(playersSql, [match.id], (playersErr, playersResult) => {
                 if (playersErr) {
@@ -93,7 +97,7 @@ const getMatchByRoomCode = (roomCode) => new Promise((resolve, reject) => {
                     current_game_number: match.current_game_number,
                     matchname: match.matchname,
                     winner_id: match.winner_id,
-                    game_sequence: parsedGameSequence, // Use the directly obtained array
+                    game_sequence: parsedGameSequence, // Use the correctly obtained array
                     players: players,
                     scores: scores
                 });
@@ -136,7 +140,7 @@ const joinMatch = (matchId, userId) => new Promise((resolve, reject) => {
             return resolve(result[0]);
         }
 
-        const insertSql = "INSERT INTO match_players (match_id, user_id, total_score, joined_at) VALUES (?, ?, ?, NOW())"; // Added joined_at
+        const insertSql = "INSERT INTO match_players (match_id, user_id, total_score, joined_at) VALUES (?, ?, ?, NOW())";
         db.query(insertSql, [matchId, userId, 0], (err, result) => {
             if (err) {
                 console.error('Database error inserting new player:', err);
@@ -155,7 +159,6 @@ const joinMatch = (matchId, userId) => new Promise((resolve, reject) => {
 
 /**
  * Fetches game details from the 'games' table by its primary ID.
- * THIS FUNCTION NOW QUERIES BY GAME ID, NOT GAME NUMBER.
  * @param {number} gameId - The primary ID of the game to fetch.
  * @returns {Promise<Object>} Game object containing id, title, description, game_number, points_value.
  */
@@ -172,7 +175,7 @@ const getGameDetailsById = (gameId) => new Promise((resolve, reject) => {
             reject(err);
         } else if (result.length === 0) {
             console.warn(`No game found for ID: ${gameId}`);
-            reject(new Error(`Game with ID ${gameId} not found.`));
+            resolve(null); // Resolve with null, allowing controller to return 404/handle 'not found'
         } else {
             console.log(`Model: Game with ID ${gameId} found:`, result[0]);
             resolve(result[0]);
@@ -192,6 +195,8 @@ const updatePlayerScores = (matchId, playerUpdates) => new Promise((resolve, rej
         return resolve();
     }
 
+    // Using Promise.all to update all players concurrently within the same promise resolver.
+    // If you need ACID transactions (all or nothing), consider db.beginTransaction/commit/rollback.
     const promises = playerUpdates.map(update => {
         return new Promise((updateResolve, updateReject) => {
             const sql = `
@@ -206,7 +211,7 @@ const updatePlayerScores = (matchId, playerUpdates) => new Promise((resolve, rej
                     updateReject(err);
                 } else if (result.affectedRows === 0) {
                     console.warn(`No player found or no change for match_player_id ${update.match_player_id} in match ${matchId}.`);
-                    updateResolve();
+                    updateResolve(); // Resolve even if no rows affected (player not found, or score didn't change)
                 } else {
                     console.log(`Updated score for player ${update.match_player_id}. Affected rows: ${result.affectedRows}`);
                     updateResolve(result);
@@ -239,6 +244,8 @@ const updateMatchProgress = (matchId, newStatus, newGameIndex, winnerId = null) 
     if (winnerId !== null) {
         sql += `, winner_id = ?`; // Add winner_id update if provided
         params.push(winnerId);
+    } else {
+        sql += `, winner_id = NULL`; // Explicitly set to NULL if no winnerId
     }
 
     sql += ` WHERE id = ?`; // Add WHERE clause at the end
@@ -263,7 +270,7 @@ module.exports = {
     getMatchByRoomCode,
     updateMatchName,
     joinMatch,
-    getGameDetailsById, // Export the updated function name
+    getGameDetailsById,
     updatePlayerScores,
     updateMatchProgress
 };

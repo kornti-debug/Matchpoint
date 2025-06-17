@@ -1,6 +1,7 @@
 // components/PlayerLobby.jsx
 import React, { useState, useEffect } from 'react';
-import * as apiService from '../services/apiService.js'; // Keep import for potential future use or if needed elsewhere
+// apiService is not directly needed here as join is Dashboard-driven
+// and updates come via MatchController's WebSocket listeners.
 
 function PlayerLobby({ roomCode, matchState, setMatchState }) {
     const [hasJoined, setHasJoined] = useState(false);
@@ -22,23 +23,23 @@ function PlayerLobby({ roomCode, matchState, setMatchState }) {
                 // Player is not in this match, but match is already ongoing/finished
                 // So they can't join now, just display status.
                 setJoinMessage("This match has already started or finished. You cannot join.");
+            } else {
+                // This means user is logged in, but not found in match.players for a 'waiting' match.
+                setJoinMessage("It looks like you haven't fully joined this match yet. Please try again or ensure you clicked 'Join Match' on the Dashboard.");
             }
         } else {
-            // This case should ideally not happen if user is logged in and matchDetails are fetched
-            // But if it does, they are not joined.
+            // User ID not found in localStorage, or no players fetched for the match yet
+            setJoinMessage("Waiting for match details or your player status to load...");
             setHasJoined(false);
-            setJoinMessage(''); // Clear previous join messages
         }
     }, [matchState.players, matchState.matchDetails.status]);
 
-    // --- REMOVED handleJoinMatch function entirely or made it a no-op if no longer needed ---
-    // If you need it for a "rejoin" feature, consider its logic carefully.
-    // For now, if PlayerLobby is reached, the join API call should have already happened.
+    // This function should ideally not be called if the user has already joined
+    // For now, it's a warning or debug fallback.
     const handleJoinMatch = () => {
-        // This function should ideally not be called if the user has already joined
-        // If it's still being called, it means the UI state for hasJoined is incorrect.
-        console.warn("PlayerLobby: Join Match button was clicked, but should be handled by Dashboard now.");
-        setJoinMessage("You should have already joined. Please refresh if you believe there's an error.");
+        console.warn("PlayerLobby: 'Re-attempt Join' button was clicked, but joining should happen via Dashboard.");
+        setJoinMessage("You should have already joined. If not, please return to the Dashboard to join.");
+        // Consider redirecting to Dashboard here: navigate('/dashboard');
     };
 
 
@@ -49,16 +50,16 @@ function PlayerLobby({ roomCode, matchState, setMatchState }) {
 
             {/* Conditional rendering based on hasJoined state */}
             {!hasJoined ? (
-                // --- This section should now ideally NOT be visible if join happened from Dashboard ---
+                // This section should now ideally NOT be visible if join happened from Dashboard
                 <div className="mb-6">
-                    <h3 className="text-2xl font-semibold mb-3 text-white">Ready to Join? Click below!</h3>
-                    <p className="text-red-400 mb-4">{joinMessage || "It looks like you haven't fully joined this match yet. Please try again or ensure you clicked 'Join Match' on the Dashboard."}</p>
+                    <h3 className="text-2xl font-semibold mb-3 text-white">Join Status:</h3>
+                    <p className="text-red-400 mb-4">{joinMessage}</p>
                     {/* The button below should likely be removed or made to redirect if hasJoined is false */}
                     <button
                         onClick={handleJoinMatch} // This button's click should ideally not be needed.
                         className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-lg shadow-md transition duration-300 transform hover:scale-105"
                     >
-                        Re-attempt Join (Debug)
+                        Re-attempt Join (Debug/Fallback)
                     </button>
                 </div>
             ) : (

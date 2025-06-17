@@ -6,7 +6,6 @@ const db = require('../services/database').config;
  * @returns {Promise<Array<Object>>} A promise that resolves with an array of game objects.
  */
 const getAllGames = () => new Promise((resolve, reject) => {
-    console.log('Game Model: Fetching all games from database...');
     const sql = `SELECT id, title, description, game_number, points_value FROM games ORDER BY game_number ASC`;
     db.query(sql, (err, results) => {
         if (err) {

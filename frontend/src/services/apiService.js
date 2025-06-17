@@ -3,7 +3,34 @@
 // Make sure this matches your actual backend URL
 const API_URL = 'http://localhost:3000/api';
 
-// --- Existing API Calls (from your provided code) ---
+// Helper to handle common response logic
+const handleResponse = async (response, defaultErrorMessage) => {
+    const contentType = response.headers.get("content-type");
+    if (response.ok) {
+        if (contentType && contentType.includes("application/json")) {
+            return await response.json();
+        }
+        return response.text(); // For non-JSON success responses (e.g., 204 No Content)
+    } else {
+        let errorData = {};
+        if (contentType && contentType.includes("application/json")) {
+            errorData = await response.json();
+        } else {
+            errorData.message = await response.text(); // Capture plain text errors
+        }
+        console.error('API Error:', defaultErrorMessage, 'Status:', response.status, 'Response:', errorData);
+        // Use errorData.message for consistency, fallback to errorData.error, then default message
+        throw new Error(errorData.message || errorData.error || defaultErrorMessage);
+    }
+};
+
+const getAuthHeaders = () => {
+    const token = localStorage.getItem('token');
+    return {
+        'Content-Type': 'application/json',
+        'Authorization': token ? `Bearer ${token}` : ''
+    };
+};
 
 export const login = async (username, password) => {
     try {
@@ -13,17 +40,13 @@ export const login = async (username, password) => {
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({username,password}),
-        })
-        if(!response.ok){
-            const errorData = await response.json();
-            throw new Error(errorData.message || 'Login failed')
-        }
-        return await response.json();
+        });
+        return await handleResponse(response, 'Login failed');
     } catch (error) {
-        console.error('Login error:', error)
+        console.error('Login error:', error);
         throw error;
     }
-}
+};
 
 export const register = async (username, password) => {
     try {
@@ -34,13 +57,7 @@ export const register = async (username, password) => {
             },
             body: JSON.stringify({username, password}),
         });
-
-        if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.message || 'Failed to create user');
-        }
-
-        return await response.json();
+        return await handleResponse(response, 'Registration failed');
     } catch (error) {
         console.error('Error creating user:', error);
         throw error;
@@ -49,21 +66,13 @@ export const register = async (username, password) => {
 
 export const createMatch = async (matchName, gameSequence) => {
     try {
-        console.log("haha",matchName)
+        console.log("Creating match with name:", matchName, "and sequence:", gameSequence);
         const response = await fetch(`${API_URL}/matches`, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${localStorage.getItem('token')}`
-            },body: JSON.stringify({matchName, gameSequence})
+            headers: getAuthHeaders(),
+            body: JSON.stringify({matchName, gameSequence})
         });
-
-        if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.message || 'Failed to create match');
-        }
-
-        return await response.json();
+        return await handleResponse(response, 'Failed to create match');
     } catch (error) {
         console.error('Error creating match:', error);
         throw error;
@@ -72,21 +81,13 @@ export const createMatch = async (matchName, gameSequence) => {
 
 export const createGame = async (gameData) => {
     try {
-        console.log({gameData})
+        console.log("Creating game with data:", gameData);
         const response = await fetch(`${API_URL}/games/create`, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${localStorage.getItem('token')}`
-            },body: JSON.stringify(gameData)
+            headers: getAuthHeaders(),
+            body: JSON.stringify(gameData)
         });
-
-        if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.message || 'Failed to create game');
-        }
-
-        return await response.json();
+        return await handleResponse(response, 'Failed to create game');
     } catch (error) {
         console.error('Error creating game:', error);
         throw error;
@@ -97,75 +98,55 @@ export const getMatchDetails = async (roomCode) => {
     try {
         const response = await fetch(`${API_URL}/matches/${roomCode}`, {
             method: 'GET',
-            headers:
-                {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${localStorage.getItem('token')}`
-                }
-        })
-
-        if(!response.ok){
-            const errorData = await response.json();
-            throw new Error(errorData.message || `failed to get match with id ${roomCode}`)
-        }
-
-        return await response.json();
+            headers: getAuthHeaders()
+        });
+        return await handleResponse(response, `Failed to get match details for room: ${roomCode}`);
     } catch (error) {
-        console.error('error getting match details:', error);
+        console.error('Error getting match details:', error);
         throw error;
     }
-}
+};
 
 export const getAllGames = async () => {
     try {
         console.log('Frontend: Fetching all games from backend.');
-        const response = await fetch(`${API_URL}/games`, { // Note the endpoint: /api/games
+        const response = await fetch(`${API_URL}/games`, { // Endpoint: /api/games
             method: 'GET',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${localStorage.getItem('token')}` // Protected route
-            }
+            headers: getAuthHeaders()
         });
-        if(!response.ok){
-            const errorData = await response.json();
-            throw new Error(errorData.message || `failed to fetch games`)
-        }
-
-
-        return await response.json(); // Backend returns { success: true, games: [...] }
+        return await handleResponse(response, 'Failed to fetch all games');
     } catch (error) {
         console.error('Frontend: Error getting all games:', error);
         throw error;
     }
 };
 
-// ... (existing code for login, register, createMatch, getMatchDetails, etc.) ...
-
 /**
  * Fetches a single game's details from the backend by ID.
  * @param {number} gameId - The ID of the game to fetch.
  * @returns {Promise<Object>} A promise that resolves with the game object.
  */
-export const getGameById = async (gameId) => {
+export const getGameData = async (gameId) => {
     try {
-        console.log(`Frontend: Fetching game with ID ${gameId} from backend.`);
+        console.log(`Frontend: Fetching game data for ID ${gameId} from backend.`);
         const response = await fetch(`${API_URL}/games/${gameId}`, { // Endpoint: /api/games/:id
             method: 'GET',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${localStorage.getItem('token')}`
-            }
+            headers: getAuthHeaders()
         });
-        if(!response.ok){
-            const errorData = await response.json();
-            throw new Error(errorData.message || `failed to fetch games`)
-        }
+        const data = await handleResponse(response, `Failed to fetch game data for ID ${gameId}`);
+        console.log("apiService.getGameData raw response data:", data); // Log the full 'data' object
 
-        const data = await response.json()
-        console.log(data)
-        return data.result; // Backend returns { success: true, game: {...} }
+        // --- CRITICAL FIX: Backend returns 'result' key, not 'game' key ---
+        if (data && data.result) {
+            return data.result;
+        } else {
+            console.error("apiService.getGameData: Expected 'result' key in response, but not found.", data);
+            throw new Error("Invalid game data response format from backend.");
+        }
+        // --- END CRITICAL FIX ---
+
     } catch (error) {
-        console.error(`Frontend: Error getting game with ID ${gameId}:`, error);
+        console.error(`Frontend: Error getting game data for ID ${gameId}:`, error);
         throw error;
     }
 };
@@ -175,17 +156,10 @@ export const updateGame = async (gameId, gameData) => {
         console.log(`Frontend: Updating game with ID ${gameId} with data:`, gameData);
         const response = await fetch(`${API_URL}/games/${gameId}`, {
             method: 'PUT', // Use PUT method for updating
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${localStorage.getItem('token')}` // Authenticated route
-            },
+            headers: getAuthHeaders(),
             body: JSON.stringify(gameData)
         });
-        if(!response.ok){
-            const errorData = await response.json();
-            throw new Error(errorData.message || `failed to update game`)
-        }
-        return await response.json();
+        return await handleResponse(response, `Failed to update game with ID ${gameId}`);
     } catch (error) {
         console.error(`Frontend: Error updating game with ID ${gameId}:`, error);
         throw error;
@@ -197,176 +171,84 @@ export const deleteGame = async (gameId) => {
         console.log(`Frontend: Deleting game with ID ${gameId}.`);
         const response = await fetch(`${API_URL}/games/${gameId}`, {
             method: 'DELETE', // Use DELETE method
-            headers: {
-                'Content-Type': 'application/json', // Good practice to include, even if no body
-                'Authorization': `Bearer ${localStorage.getItem('token')}`
-            }
+            headers: getAuthHeaders()
         });
-
-        // Use your current error handling pattern if you don't have handleResponse
-        if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.message || `Failed to delete game with ID ${gameId}`);
-        }
-        return await response.json();
-
+        return await handleResponse(response, `Failed to delete game with ID ${gameId}`);
     } catch (error) {
         console.error(`Frontend: Error deleting game with ID ${gameId}:`, error);
         throw error;
     }
 };
 
-// ... (rest of your apiService.js) ...
-
 export const updateMatchName = async (roomCode, matchName) => {
     try {
         const response = await fetch(`${API_URL}/matches/${roomCode}`, {
             method: 'PATCH',
-            headers:
-                {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${localStorage.getItem('token')}`
-                },
-            body: JSON.stringify({
-                matchName: matchName
-
-            })
-        })
-
-        if(!response.ok){
-            const errorData = await response.json();
-            throw new Error(errorData.message || `failed to update match`)
-        }
-
-        return await response.json();
+            headers: getAuthHeaders(),
+            body: JSON.stringify({ matchName: matchName })
+        });
+        return await handleResponse(response, `Failed to update match name for room ${roomCode}`);
     } catch (error) {
-        console.error('error updating match :', error);
+        console.error('Error updating match name:', error);
         throw error;
     }
-}
+};
 
-// Adjusted joinMatch to temporarily accept playerName for client-side testing
-// In a real app, your backend would likely handle player association based on authentication.
 export const joinMatch = async (roomCode) => {
     try {
-        // Send request to your backend to join the match.
-        // Your backend would typically use the auth token to identify the joining user.
         const response = await fetch(`${API_URL}/matches/${roomCode}/join`, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${localStorage.getItem('token')}`
-            },
-
+            headers: getAuthHeaders(),
         });
-
-        if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.message || 'Failed to join match');
-        }
-
-        const result = await response.json();
-
-        console.log("joinmatch api: ",result)
-        return result; // Return the mock player for client-side use
+        const result = await handleResponse(response, 'Failed to join match');
+        console.log("apiService.joinMatch result:", result);
+        return result;
     } catch (error) {
         console.error('Error joining match:', error);
         throw error;
     }
 };
 
-
-export const getGameData = async (gameNumber) => {
-try{
-    const response = await fetch(`${API_URL}/matches/games/${gameNumber}`,
-        {
-            method: 'GET',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${localStorage.getItem('token')}`
-            }
-        });
-    if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to start match');
-    }
-    const result = await response.json();
-    console.log("testtest", result.game)
-    return result.game
-    } catch (error){
-    throw error
-}
-
-};
-
-// Placeholder for saving game results
-export const saveGameResults = async (roomCode, gameNumber, winners, points) => { // Removed newScores from args, as it's computed on backend
+export const submitGameResults = async (roomCode, gameNumber, winners, points) => {
     try {
-        console.log(`Frontend: Submitting REAL game results for match ${roomCode}, game ${gameNumber}.`);
+        console.log(`Frontend: Submitting game results for match ${roomCode}, game ${gameNumber}. Winners: ${JSON.stringify(winners)}, Points: ${points}`);
         const response = await fetch(`${API_URL}/matches/${roomCode}/results`, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${localStorage.getItem('token')}`
-            },
-            body: JSON.stringify({ gameNumber, winners, points }) // Send necessary data
+            headers: getAuthHeaders(),
+            body: JSON.stringify({ gameNumber, winners, points })
         });
-
-        if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.message || 'Failed to save game results');
-        }
-
-        const data = await response.json();
-        // Backend should return { success: true, updatedPlayers: [...], updatedScores: {...} }
+        const data = await handleResponse(response, 'Failed to save game results');
         return { updatedPlayers: data.updatedPlayers, updatedScores: data.updatedScores };
     } catch (error) {
-        console.error('Frontend: Error saving REAL game results:', error);
+        console.error('Frontend: Error saving game results:', error);
         throw error;
     }
 };
 
 export const startMatch = async (roomCode) => {
     try {
-        console.log(`Frontend: Requesting to START REAL match ${roomCode} from backend.`);
+        console.log(`Frontend: Requesting to START match ${roomCode} from backend.`);
         const response = await fetch(`${API_URL}/matches/${roomCode}/start`, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${localStorage.getItem('token')}`
-            },
+            headers: getAuthHeaders(),
             body: JSON.stringify({}) // Send an empty object if no specific body is needed by backend
         });
-
-        if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.message || 'Failed to start match');
-        }
-        return await response.json(); // Backend returns { success: true, message: ... }
+        return await handleResponse(response, 'Failed to start match');
     } catch (error) {
-        console.error('Frontend: Error starting REAL match:', error);
+        console.error('Frontend: Error starting match:', error);
         throw error;
     }
 };
 
 export const nextGame = async (roomCode, newGameNumber, isMatchFinished) => {
     try {
-        console.log(`Frontend: Requesting REAL next game for match ${roomCode}, game ${newGameNumber}. Finished: ${isMatchFinished}`);
+        console.log(`Frontend: Requesting next game for match ${roomCode}, game ${newGameNumber}. Finished: ${isMatchFinished}`);
         const response = await fetch(`${API_URL}/matches/${roomCode}/next-game`, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${localStorage.getItem('token')}`
-            },
-            body: JSON.stringify({ newGameNumber, isMatchFinished }) // Send necessary data
+            headers: getAuthHeaders(),
+            body: JSON.stringify({ newGameNumber, isMatchFinished })
         });
-
-        if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.message || 'Failed to advance game');
-        }
-
-        const data = await response.json();
+        const data = await handleResponse(response, 'Failed to advance game');
         // Backend returns { success: true, newStatus: ..., newCurrentGameNumber: ..., gameData: ... }
         return {
             newStatus: data.newStatus,
@@ -374,15 +256,7 @@ export const nextGame = async (roomCode, newGameNumber, isMatchFinished) => {
             gameData: data.gameData // This will be null if finished, or the game object
         };
     } catch (error) {
-        console.error('Frontend: Error advancing REAL game:', error);
+        console.error('Frontend: Error advancing game:', error);
         throw error;
     }
 };
-
-
-
-
-/**
- * Fetches all games from the backend.
- * @returns {Promise<Array<Object>>} A promise that resolves with an array of game objects.
- */

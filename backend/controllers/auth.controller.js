@@ -10,9 +10,6 @@ const ACCESS_TOKEN_SECRET = process.env.ACCESS_TOKEN_SECRET;
 // Process login form submission
 // Fetch all users and then authenticate the user with given credentials
 function processLogin(req, res, next) {
-    console.log('=== LOGIN ATTEMPT ===');
-    console.log('Request body:', req.body);
-    console.log('Headers:', req.headers);
     userModel.getUsers()
         .then((users) =>
             authenticationService.authenticateUser(req.body, users, res)

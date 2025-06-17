@@ -8,15 +8,13 @@ function GameView({ roomCode, matchState, isHost, submitGameResults, backToScore
     const totalGames = matchState.totalGames; // This is length of sequence
 
     const [selectedWinners, setSelectedWinners] = useState([]);
-    // --- REMOVED: const [points, setPoints] = useState(gameData?.points_value || 1); ---
 
     useEffect(() => {
         setSelectedWinners([]);
-        // --- REMOVED: points state related cleanup ---
-    }, [currentGameIndex, gameData]);
+    }, [currentGameIndex, gameData]); // Reset winners when game changes
 
 
-    if (!gameData) {
+    if (!gameData) { // Crucial check: if gameData is null, display loading
         return (
             <div className="bg-gray-800 p-8 rounded-xl shadow-lg w-full max-w-xl text-center">
                 <p className="text-red-400 text-xl">Loading game data for Game {currentGameIndex + 1}...</p> {/* Displaying index + 1 */}
@@ -37,16 +35,17 @@ function GameView({ roomCode, matchState, isHost, submitGameResults, backToScore
             console.warn("Please select at least one winner.");
             return;
         }
-        // --- MODIFIED: submitGameResults no longer takes points here ---
-        submitGameResults(selectedWinners);
+        // CRITICAL FIX: Pass the calculated points (currentGameIndex + 1) to submitGameResults
+        // This ensures the backend (via MatchController) receives 1 point for Game 1, 2 for Game 2, etc.
+        submitGameResults(selectedWinners, currentGameIndex + 1);
     };
 
-    // Calculate points display for the user
-    const pointsForCurrentGame = currentGameIndex + 1; // 0-indexed game 0 gives 1 point
+    // CRITICAL FIX: Calculate points display to always be currentGameIndex + 1
+    const pointsForCurrentGameDisplay = currentGameIndex + 1;
+
 
     return (
         <div className="bg-gray-800 p-8 rounded-xl shadow-lg w-full max-w-3xl border-2 border-purple-600">
-            {/* --- FIX 1: Display currentGameIndex + 1 --- */}
             <h2 className="text-4xl font-bold mb-4 text-purple-400 text-center">Game {currentGameIndex + 1} of {totalGames}</h2>
 
             <div className="bg-gray-700 p-6 rounded-lg mb-6 shadow-inner">
@@ -57,29 +56,15 @@ function GameView({ roomCode, matchState, isHost, submitGameResults, backToScore
             {isHost && (
                 <div className="mt-8 border-t border-gray-700 pt-6">
                     <h3 className="text-2xl font-bold mb-4 text-white">Host Controls:</h3>
-                    <p className="text-gray-300 mb-4">Select the winner(s) for this game. This game awards <span className="font-bold text-yellow-300">{pointsForCurrentGame}</span> points.</p>
-
-                    {/* --- REMOVED: Points input field entirely --- */}
-                    {/*
-                    <div className="mb-6">
-                        <label htmlFor="points" className="block text-gray-300 text-lg font-semibold mb-2">Points for this game:</label>
-                        <input
-                            type="number"
-                            id="points"
-                            value={points}
-                            onChange={(e) => setPoints(e.target.value)}
-                            min="1"
-                            className="w-full p-3 rounded-lg bg-gray-700 text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                        />
-                    </div>
-                    */}
+                    {/* CRITICAL FIX: Display the calculated pointsForCurrentGameDisplay */}
+                    <p className="text-gray-300 mb-4">Select the winner(s) for this game. This game awards <span className="font-bold text-yellow-300">{pointsForCurrentGameDisplay}</span> points.</p>
 
                     <h4 className="text-xl font-semibold mb-3 text-white">Select Winners:</h4>
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 mb-6">
                         {players.length > 0 ? players.map(player => (
                             <button
                                 key={player.id}
-                                type="button" // Ensure it's a button type to prevent form submission
+                                type="button"
                                 onClick={() => handleWinnerToggle(player)}
                                 className={`p-3 rounded-lg shadow-md transition duration-200
                                     ${selectedWinners.some(w => w.id === player.id)

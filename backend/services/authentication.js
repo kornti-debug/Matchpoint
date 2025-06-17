@@ -10,9 +10,6 @@ if (!ACCESS_TOKEN_SECRET) {
 
 // Login: verify user and issue JWT token
 async function authenticateUser({ username, password }, users, res) {
-    console.log('=== AUTHENTICATION SERVICE ===');
-    console.log('Looking for user:', username);
-    console.log('Available users:', users.map(u => ({ id: u.id, username: u.username })));
 
     const user = users.find(user => user.username === username); // Find user by email
 
@@ -68,7 +65,6 @@ function authenticateJWT(req, res, next) {
     }
 
     if (token) {
-        console.log("authenticateJWT");
         jwt.verify(token, ACCESS_TOKEN_SECRET, (err, user) => {
             if (err) {
                 return res.status(401).send('invalid token'); // Redirect if token is invalid/expired
