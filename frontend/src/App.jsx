@@ -52,7 +52,7 @@ function App() {
                 </main>
 
                 <footer className="bg-gray-800 p-4 text-center text-gray-400 shadow-inner">
-                    &copy; 2025 Game Show App
+                    &copy; 2025 Matchpoint
                 </footer>
             </div>
         </Router>
