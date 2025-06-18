@@ -1,6 +1,7 @@
 import {Link, useNavigate} from "react-router-dom";
 import {useState} from "react";
 import * as apiService from "../services/apiService.js";
+import Logo from "../assets/logo2.svg";
 
 
 function Register(){
@@ -25,7 +26,13 @@ function Register(){
         }
 
         return(
-            <div className="min-h-screen bg-gray-900 text-gray-100 flex items-center justify-center px-4">
+            <div className="min-h-screen bg-gray-900 text-gray-100 flex pt-20 justify-center px-4">
+                <div className="flex flex-col items-center">
+                <img
+                    src={Logo}
+                    alt="Logo"
+                    className="mb-16 w-48 h-auto"
+                />
                 <div className="max-w-md w-full bg-gray-800 rounded-lg shadow-xl p-8">
 
                     <h2 className="text-3xl font-bold text-center text-white mb-8">Register</h2>
@@ -66,12 +73,15 @@ function Register(){
                                 placeholder="ironmann"
                             />
                         </div>
-                        <Link
-                            to="/"
-                            className="inline-block bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-8 rounded-lg transition duration-200 transform hover:scale-105"
-                        >
-                            already registered? Log in here
-                        </Link>
+                        <p className="text-white">
+                            already registered?{' '}
+                            <Link
+                                to="/"
+                                className="text-teal-500 font-semibold hover:underline transition duration-200"
+                            >
+                                Log in
+                            </Link>
+                        </p>
 
                         <button
                             type="submit"
@@ -81,6 +91,7 @@ function Register(){
                         </button>
                     </form>
                 </div>
+                    </div>
             </div>
 
         )

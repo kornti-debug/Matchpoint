@@ -9,34 +9,31 @@ import MatchController from "./components/MatchController.jsx";
 import GamesPage from "./components/GamesPage.jsx";
 import GameDetailPage from "./components/GameDetailPage.jsx";
 import GameFormPage from "./components/GameFormPage.jsx";
+import Wordmark from "./assets/wordmarkLogo.svg";
+import BurgerMenu from "./components/BurgerMenu.jsx";
+import {useEffect, useState} from "react";
 
 function App() {
+    const [isAuthenticated, setIsAuthenticated] = useState(!!localStorage.getItem('token'));
+
+    useEffect(() => {
+        const handler = () => setIsAuthenticated(!!localStorage.getItem('token'));
+        window.addEventListener('authChanged', handler);
+        return () => window.removeEventListener('authChanged', handler);
+    }, []);
+
     return (
         <Router>
             <div className="min-h-screen bg-gray-900 text-gray-100 flex flex-col font-inter">
                 <header className="bg-gray-800 p-4 shadow-md flex justify-between items-center">
                     <Link to="/" className="text-2xl font-bold text-blue-400 hover:text-blue-300 rounded-lg p-2 transition duration-300">
-                        Matchpoint
+                        <img
+                            src={Wordmark}
+                            alt="Matchpoint"
+                            className="w-32 h-auto"
+                        />
                     </Link>
-                    <nav>
-                        <ul className="flex space-x-4">
-                            <li>
-                                <Link to="/dashboard" className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg shadow-md transition duration-300">
-                                    Dashboard
-                                </Link>
-                            </li>
-                            <li>
-                                <Link to="/dashboard/games" className="bg-orange-600 hover:bg-orange-700 text-white font-semibold py-2 px-4 rounded-lg shadow-md transition duration-300">
-                                    Manage Games {/* <--- NEW LINK */}
-                                </Link>
-                            </li>
-                            <li>
-                                <Link to="/profile" className="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-lg shadow-md transition duration-300">
-                                    Profile
-                                </Link>
-                            </li>
-                        </ul>
-                    </nav>
+                    {isAuthenticated && <BurgerMenu />}
                 </header>
 
                 <main className="flex-grow flex items-center justify-center p-4">
@@ -55,7 +52,7 @@ function App() {
                 </main>
 
                 <footer className="bg-gray-800 p-4 text-center text-gray-400 shadow-inner">
-                    &copy; 2023 Game Show App
+                    &copy; 2025 Game Show App
                 </footer>
             </div>
         </Router>

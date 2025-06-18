@@ -2,6 +2,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import * as apiService from '../services/apiService.js';
+import join_match_icon from "../assets/joinmatch.svg";
+import create_match_icon from "../assets/creatematch.svg"
 
 function Dashboard() {
     const [matchName, setMatchName] = useState('');
@@ -106,6 +108,11 @@ function Dashboard() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 w-full max-w-5xl">
                 {/* Create New Match Section */}
                 <div className="bg-gray-800 p-8 rounded-xl shadow-lg border-2 border-blue-600 flex flex-col justify-between">
+                    <img
+                        src={create_match_icon}
+                        alt="create_match_icon"
+                        className="mb-8 w-16 h-auto mx-auto"
+                    />
                     <h2 className="text-4xl font-bold mb-6 text-blue-400 text-center">Create New Match</h2>
                     <form onSubmit={handleCreateMatch} className="flex flex-col flex-grow">
                         <div className="mb-4">
@@ -190,8 +197,14 @@ function Dashboard() {
                 </div>
 
                 {/* Join Existing Match Section */}
-                <div className="bg-gray-800 p-8 rounded-xl shadow-lg border-2 border-green-600 flex flex-col justify-between">
-                    <h2 className="text-4xl font-bold mb-6 text-green-400 text-center">Join Existing Match</h2>
+                <div className="bg-gray-800 p-8 rounded-xl shadow-lg border-2 border-yellow-600 flex flex-col justify-between">
+                    <img
+                        src={join_match_icon}
+                        alt="join_match_icon"
+                        className="mb-8 w-16 h-auto mx-auto"
+                    />
+                    <h2 className="text-4xl font-bold mb-6 text-yellow-400 text-center">Join Existing Match</h2>
+
                     <form onSubmit={handleJoinMatch} className="flex flex-col flex-grow">
                         <div className="mb-4">
                             <label htmlFor="roomCode" className="block text-lg font-medium text-gray-300 mb-2">Room Code:</label>
