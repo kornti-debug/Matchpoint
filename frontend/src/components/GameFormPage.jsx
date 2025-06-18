@@ -23,7 +23,7 @@ function GameFormPage({ type }) { // 'type' will be 'new' or 'edit'
                 setIsLoading(true);
                 setError(null);
                 try {
-                    const gameData = await apiService.getGameById(gameId);
+                    const gameData = await apiService.getGameData(gameId);
                     setTitle(gameData.title);
                     setDescription(gameData.description);
                     setGameNumber(gameData.game_number.toString()); // Convert number to string for input value
@@ -92,8 +92,8 @@ function GameFormPage({ type }) { // 'type' will be 'new' or 'edit'
     }
 
     return (
-        <div className="bg-gray-800 p-8 rounded-xl shadow-lg w-full max-w-xl border-2 border-purple-600">
-            <h2 className="text-4xl font-bold mb-6 text-purple-400 text-center">
+        <div className="bg-gray-800 p-8 rounded-xl shadow-lg w-full max-w-xl border-2 border-blue-600 mx-auto">
+            <h2 className="text-4xl font-bold mb-6 text-blue-400 text-center">
                 {type === 'new' ? 'Create New Game' : 'Edit Game'}
             </h2>
 
@@ -116,7 +116,7 @@ function GameFormPage({ type }) { // 'type' will be 'new' or 'edit'
                         id="title"
                         value={title}
                         onChange={(e) => setTitle(e.target.value)}
-                        className="w-full p-3 rounded-lg bg-gray-700 text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                        className="w-full p-3 rounded-lg bg-gray-700 text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
                         placeholder="e.g., Guess the Object"
                         required
                     />
@@ -128,7 +128,7 @@ function GameFormPage({ type }) { // 'type' will be 'new' or 'edit'
                         value={description}
                         onChange={(e) => setDescription(e.target.value)}
                         rows="4"
-                        className="w-full p-3 rounded-lg bg-gray-700 text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                        className="w-full p-3 rounded-lg bg-gray-700 text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
                         placeholder="Detailed rules or context for the game..."
                         required
                     ></textarea>
@@ -140,7 +140,7 @@ function GameFormPage({ type }) { // 'type' will be 'new' or 'edit'
                         id="gameNumber"
                         value={gameNumber}
                         onChange={(e) => setGameNumber(e.target.value)}
-                        className="w-full p-3 rounded-lg bg-gray-700 text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                        className="w-full p-3 rounded-lg bg-gray-700 text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
                         placeholder="e.g., 1, 2, 3..."
                         min="1"
                         required
@@ -153,7 +153,7 @@ function GameFormPage({ type }) { // 'type' will be 'new' or 'edit'
                         id="pointsValue"
                         value={pointsValue}
                         onChange={(e) => setPointsValue(e.target.value)}
-                        className="w-full p-3 rounded-lg bg-gray-700 text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                        className="w-full p-3 rounded-lg bg-gray-700 text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
                         placeholder="e.g., 10, 20, 50"
                         min="1"
                         required

@@ -68,7 +68,7 @@ function PlayerLobby({ roomCode, matchState, setMatchState }) {
                     {matchState.matchDetails.status === 'in_progress' ? (
                         <p className="text-yellow-400 text-lg mb-4">The match has started! Please go to Game {matchState.currentGame + 1}.</p>
                     ) : matchState.matchDetails.status === 'finished' ? (
-                        <p className="text-purple-400 text-lg mb-4">The match has finished! Please go to Final Results.</p>
+                        <p className="text-blue-400 text-lg mb-4">The match has finished! Please go to Final Results.</p>
                     ) : (
                         <p className="text-gray-400 text-lg">{joinMessage}</p>
                     )}

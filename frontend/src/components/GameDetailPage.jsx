@@ -16,7 +16,7 @@ function GameDetailPage() {
             setIsLoading(true);
             setError(null);
             try {
-                const gameData = await apiService.getGameById(gameId);
+                const gameData = await apiService.getGameData(gameId);
                 setGame(gameData);
             } catch (err) {
                 setError(err.message);
@@ -72,8 +72,8 @@ function GameDetailPage() {
     }
 
     return (
-        <div className="bg-gray-800 p-8 rounded-xl shadow-lg w-full max-w-2xl border-2 border-purple-600">
-            <h2 className="text-4xl font-bold mb-4 text-purple-400 text-center">Game Details</h2>
+        <div className="bg-gray-800 p-8 rounded-xl shadow-lg w-full max-w-2xl border-2 border-blue-600 mx-auto">
+            <h2 className="text-4xl font-bold mb-4 text-blue-400 text-center">Game Details</h2>
             <div className="text-left space-y-3">
                 <p className="text-lg text-gray-300"><span className="font-semibold text-white">ID:</span> {game.id}</p>
                 <p className="text-lg text-gray-300"><span className="font-semibold text-white">Title:</span> {game.title}</p>

@@ -24,12 +24,12 @@ function FinalResults({ roomCode, matchState, isHost }) {
         : null;
 
     return (
-        <div className="bg-gray-800 p-8 rounded-xl shadow-lg w-full max-w-2xl text-center border-2 border-purple-600">
-            <h2 className="text-4xl font-bold mb-6 text-purple-400">Match Concluded!</h2>
+        <div className="bg-gray-800 p-8 rounded-xl shadow-lg w-full max-w-2xl text-center border-2 border-blue-600">
+            <h2 className="text-4xl font-bold mb-6 text-yellow-400">Match Concluded!</h2>
 
             {winnerPlayer ? (
-                <div className="mb-8 p-4 bg-purple-700 rounded-lg shadow-md">
-                    <h3 className="text-3xl font-extrabold text-white">🏆 Overall Winner 🏆</h3>
+                <div className="mb-8 p-4 bg-yellow-700 rounded-lg shadow-md">
+                    <h3 className="text-3xl font-extrabold text-white">Winner</h3>
                     <p className="text-5xl font-extrabold text-yellow-300 mt-2">
                         {winnerPlayer.name}
                     </p>

@@ -45,8 +45,8 @@ function GameView({ roomCode, matchState, isHost, submitGameResults, backToScore
 
 
     return (
-        <div className="bg-gray-800 p-8 rounded-xl shadow-lg w-full max-w-3xl border-2 border-purple-600">
-            <h2 className="text-4xl font-bold mb-4 text-purple-400 text-center">Game {currentGameIndex + 1} of {totalGames}</h2>
+        <div className="bg-gray-800 p-8 rounded-xl shadow-lg w-full max-w-3xl border-2 border-blue-600">
+            <h2 className="text-4xl font-bold mb-4 text-blue-400 text-center">Game {currentGameIndex + 1} of {totalGames}</h2>
 
             <div className="bg-gray-700 p-6 rounded-lg mb-6 shadow-inner">
                 <h3 className="text-3xl font-semibold mb-3 text-white">{gameData.title || `Unnamed Game ${currentGameIndex + 1}`}</h3>
@@ -68,7 +68,7 @@ function GameView({ roomCode, matchState, isHost, submitGameResults, backToScore
                                 onClick={() => handleWinnerToggle(player)}
                                 className={`p-3 rounded-lg shadow-md transition duration-200
                                     ${selectedWinners.some(w => w.id === player.id)
-                                    ? 'bg-purple-600 text-white ring-2 ring-purple-400'
+                                    ? 'bg-blue-600 text-white ring-2 ring-blue-400'
                                     : 'bg-gray-700 text-gray-200 hover:bg-gray-600'
                                 }`}
                             >
@@ -82,7 +82,7 @@ function GameView({ roomCode, matchState, isHost, submitGameResults, backToScore
                             onClick={handleSubmit}
                             disabled={selectedWinners.length === 0}
                             className={`flex-grow text-white font-bold py-3 px-6 rounded-lg shadow-md transition duration-300 transform hover:scale-105
-                                ${selectedWinners.length === 0 ? 'bg-gray-500 cursor-not-allowed' : 'bg-purple-700 hover:bg-purple-800'}`}
+                                ${selectedWinners.length === 0 ? 'bg-gray-500 cursor-not-allowed' : 'bg-blue-700 hover:bg-blue-800'}`}
                         >
                             Submit Results
                         </button>

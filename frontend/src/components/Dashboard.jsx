@@ -98,8 +98,8 @@ function Dashboard() {
     // --- END MODIFIED handleJoinMatch ---
 
     return (
-        <div className="min-h-[calc(100vh-120px)] flex flex-col items-center justify-center p-4">
-            {message && (
+        <div className="min-h-[calc(100vh-120px)] flex flex-col items-center justify-center w-full flex-grow">
+        {message && (
                 <div className={`p-4 mb-4 rounded-lg text-center ${message.includes('Failed') ? 'bg-red-500' : 'bg-green-500'} text-white`}>
                     {message}
                 </div>
@@ -123,7 +123,7 @@ function Dashboard() {
                                 value={matchName}
                                 onChange={(e) => setMatchName(e.target.value)}
                                 className="w-full p-3 rounded-lg bg-gray-700 text-white placeholder-gray-400 border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                placeholder="e.g., The Ultimate Showdown"
+                                placeholder="e.g., Quiz Match"
                                 required
                             />
                         </div>
@@ -173,11 +173,11 @@ function Dashboard() {
                                                 }}
                                                 disabled={selectedGameIds.includes(game.id) || selectedGameIds.length >= 15}
                                                 className={`p-2 rounded-lg text-left shadow-sm transition duration-200
-                                                    ${selectedGameIds.includes(game.id) ? 'bg-green-700 text-white cursor-not-allowed' : 'bg-gray-600 text-gray-200 hover:bg-gray-500'}
+                                                    ${selectedGameIds.includes(game.id) ? 'bg-blue-700 text-white cursor-not-allowed' : 'bg-gray-600 text-gray-200 hover:bg-gray-500'}
                                                     ${selectedGameIds.length >= 15 && !selectedGameIds.includes(game.id) ? 'opacity-50 cursor-not-allowed' : ''}
                                                     `}
                                             >
-                                                {game.title} (Game No. {game.game_number})
+                                                {game.title}
                                             </button>
                                         ))}
                                     </div>
@@ -213,8 +213,8 @@ function Dashboard() {
                                 id="roomCode"
                                 value={roomCodeInput}
                                 onChange={(e) => setRoomCodeInput(e.target.value)}
-                                className="w-full p-3 rounded-lg bg-gray-700 text-white placeholder-gray-400 border border-gray-600 focus:outline-none focus:ring-2 focus:ring-green-500"
-                                placeholder="e.g., ABCDEF"
+                                className="w-full p-3 rounded-lg bg-gray-700 text-white placeholder-gray-400 border border-gray-600 focus:outline-none focus:ring-2 focus:ring-yellow-500"
+                                placeholder="e.g., AB32AF"
                                 maxLength="6"
                                 required
                             />
@@ -223,7 +223,7 @@ function Dashboard() {
                             type="submit"
                             disabled={isJoiningMatch || !roomCodeInput.trim()}
                             className={`w-full text-white font-bold py-3 px-6 rounded-lg shadow-md transition duration-300 transform hover:scale-105
-                                ${isJoiningMatch || !roomCodeInput.trim() ? 'bg-gray-500 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700'}`}
+                                ${isJoiningMatch || !roomCodeInput.trim() ? 'bg-gray-500 cursor-not-allowed' : 'bg-yellow-600 hover:bg-yellow-700'}`}
                         >
                             {isJoiningMatch ? 'Joining Match...' : 'Join Match'}
                         </button>

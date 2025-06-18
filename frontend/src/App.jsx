@@ -24,7 +24,7 @@ function App() {
 
     return (
         <Router>
-            <div className="min-h-screen bg-gray-900 text-gray-100 flex flex-col font-inter">
+            <div className="min-h-screen flex flex-col">
                 <header className="bg-gray-800 p-4 shadow-md flex justify-between items-center">
                     <Link to="/" className="text-2xl font-bold text-blue-400 hover:text-blue-300 rounded-lg p-2 transition duration-300">
                         <img
@@ -36,7 +36,8 @@ function App() {
                     {isAuthenticated && <BurgerMenu />}
                 </header>
 
-                <main className="flex-grow flex items-center justify-center p-4">
+                <main className="flex-grow flex items-center justify-center p-8">
+                    <div className="bg-gray-900 rounded-lg shadow-lg sm:p-8 m-auto w-full sm:max-w-6xl min-w-[16rem] justify-center">
                     <Routes>
                         <Route path='/' element={<HomePage />}/>
                         <Route path='/dashboard' element={<ProtectedRoute><Dashboard /></ProtectedRoute>}/>
@@ -49,6 +50,7 @@ function App() {
                         <Route path='/register' element={<Register />}/>
                         <Route path='/profile' element={<ProtectedRoute><Profile /></ProtectedRoute>}/>
                     </Routes>
+                    </div>
                 </main>
 
                 <footer className="bg-gray-800 p-4 text-center text-gray-400 shadow-inner">

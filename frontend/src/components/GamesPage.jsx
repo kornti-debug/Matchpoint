@@ -60,12 +60,12 @@ function GamesPage() {
     }
 
     return (
-        <div className="bg-gray-800 p-8 rounded-xl shadow-lg w-full max-w-4xl border-2 border-orange-600">
-            <h2 className="text-4xl font-bold mb-6 text-orange-400 text-center">Manage Games</h2>
+        <div className="bg-gray-800 p-8 rounded-xl shadow-lg w-full max-w-4xl border-2 border-blue-600 mx-auto">
+            <h2 className="text-4xl font-bold mb-6 text-blue-400 text-center">Manage Games</h2>
 
             {/* --- NEW "CREATE NEW GAME" BUTTON --- */}
             <div className="flex justify-end mb-4">
-                <Link to="/dashboard/games/new" className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg shadow-md transition duration-300">
+                <Link to="/dashboard/games/new" className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg shadow-md transition duration-300">
                     Create New Game
                 </Link>
             </div>
@@ -79,6 +79,10 @@ function GamesPage() {
                         <thead className="bg-gray-600">
                         <tr>
                             {/* ... table headers ... */}
+                            <th className="py-3 px-4 text-center text-lg font-semibold text-gray-200">#</th>
+                            <th className="py-3 px-4 text-center text-lg font-semibold text-gray-200">Title</th>
+                            <th className="py-3 px-4 text-center text-lg font-semibold text-gray-200">Description</th>
+                            <th className="py-3 px-4 text-center text-lg font-semibold text-gray-200">Value</th>
                             <th className="py-3 px-4 text-center text-lg font-semibold text-gray-200">Actions</th>
                         </tr>
                         </thead>
@@ -88,26 +92,28 @@ function GamesPage() {
                                 <td className="py-3 px-4 text-left text-gray-100 font-medium">{game.game_number}</td>
                                 <td className="py-3 px-4 text-left text-gray-100">{game.title}</td>
                                 <td className="py-3 px-4 text-left text-gray-300 text-sm">{game.description}</td>
-                                <td className="py-3 px-4 text-right text-orange-300 font-bold">{game.points_value}</td>
+                                <td className="py-3 px-4 text-right text-blue-300 font-bold">{game.points_value}</td>
                                 <td className="py-3 px-4 text-center">
-                                    <Link
-                                        to={`/dashboard/games/${game.id}`}
-                                        className="bg-blue-600 hover:bg-blue-700 text-white py-1 px-3 rounded-md text-sm transition duration-300"
-                                    >
-                                        View
-                                    </Link>
-                                    <Link
-                                        to={`/dashboard/games/${game.id}/edit`}
-                                        className="bg-purple-600 hover:bg-purple-700 text-white py-1 px-3 rounded-md text-sm ml-2 transition duration-300"
-                                    >
-                                        Edit
-                                    </Link>
-                                    <button
-                                        onClick={() => handleDelete(game.id, game.title)}
-                                        className="bg-red-600 hover:bg-red-700 text-white py-1 px-3 rounded-md text-sm ml-2 transition duration-300"
-                                    >
-                                        Delete
-                                    </button>
+                                    <div className="flex justify-center space-x-2">
+                                        <Link
+                                            to={`/dashboard/games/${game.id}`}
+                                            className="bg-blue-600 hover:bg-blue-700 text-white py-1 px-3 rounded-md text-sm transition duration-300"
+                                        >
+                                            View
+                                        </Link>
+                                        <Link
+                                            to={`/dashboard/games/${game.id}/edit`}
+                                            className="bg-yellow-600 hover:bg-yellow-700 text-white py-1 px-3 rounded-md text-sm transition duration-300"
+                                        >
+                                            Edit
+                                        </Link>
+                                        <button
+                                            onClick={() => handleDelete(game.id, game.title)}
+                                            className="bg-red-600 hover:bg-red-700 text-white py-1 px-3 rounded-md text-sm transition duration-300"
+                                        >
+                                            Delete
+                                        </button>
+                                    </div>
                                 </td>
                             </tr>
                         ))}

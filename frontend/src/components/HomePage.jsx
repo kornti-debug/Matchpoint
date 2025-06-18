@@ -30,7 +30,7 @@ function HomePage(){
     }
 
     return(
-        <div className="min-h-screen bg-gray-900 text-gray-100 flex pt-20 justify-center px-4">
+        <div className="min-h-screen bg-gray-900 text-gray-100 flex pt-4 justify-center px-4">
             <div className="flex flex-col items-center">
                 <img
                     src={Logo}

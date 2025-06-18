@@ -6,4 +6,9 @@
 
 body {
     font-family: 'Nunito', Arial, sans-serif;
+    background-image: url('/backgrounddomino.svg');
+    background-repeat: repeat;
+    background-size: 63px 42px;
+    background-color: #1a202c; /* Tailwind's bg-gray-900 hex value */
+    background-blend-mode: normal;
 }
