@@ -1,7 +1,7 @@
 // components/Scoreboard.jsx
 import React from 'react';
 
-function Scoreboard({ roomCode, matchState, isHost, nextGame, isReviewingScoreboard }) {
+function Scoreboard({ roomCode, matchState, isHost, nextGame, isReviewingScoreboard, resumeGame }) {
     const { players, scores, totalGames, currentGame, matchDetails } = matchState;
 
     // Sort players by total score in descending order
@@ -14,9 +14,13 @@ function Scoreboard({ roomCode, matchState, isHost, nextGame, isReviewingScorebo
     // Check if the current game is the last one in the sequence
     const isLastGameInSequence = (currentGame + 1) >= totalGames;
 
-    // Determine button text based on game progress
+    // Determine button text and action based on context
     let buttonText = "Next Game";
-    if (isLastGameInSequence) {
+    let buttonAction = nextGame;
+    if (isReviewingScoreboard) {
+        buttonText = "Resume to Game";
+        buttonAction = resumeGame;
+    } else if (isLastGameInSequence) {
         buttonText = "View Final Results";
     }
 
@@ -72,7 +76,7 @@ function Scoreboard({ roomCode, matchState, isHost, nextGame, isReviewingScorebo
 
             {isHost && (
                 <button
-                    onClick={nextGame} // This calls the nextGame function passed from MatchController
+                    onClick={buttonAction}
                     disabled={isNextGameButtonDisabled}
                     className={`w-full text-white font-bold py-4 px-8 rounded-lg shadow-lg transition duration-300 transform hover:scale-105
                         ${isNextGameButtonDisabled ? 'bg-gray-500 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700'}`}

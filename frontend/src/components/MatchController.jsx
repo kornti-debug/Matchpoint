@@ -41,6 +41,7 @@ function MatchController({ isHost }) {
     });
 
     const [isReviewingScoreboard, setIsReviewingScoreboard] = useState(false);
+    const [forceShowScoreboard, setForceShowScoreboard] = useState(false);
 
     // Function to fetch match details from the API service
     const fetchMatchDetails = useCallback(async () => {
@@ -58,10 +59,13 @@ function MatchController({ isHost }) {
             let newPhase;
             let initialGameData = null;
 
-            if (matchData?.status === 'waiting') {
+            // --- FORCE SHOW SCOREBOARD OVERRIDE ---
+            if (forceShowScoreboard) {
+                newPhase = 'scoreboard';
+            } else if (matchData?.status === 'waiting') {
                 newPhase = 'lobby';
             } else if (matchData?.status === 'in_progress') {
-                // CRITICAL FIX: If host explicitly set to review scoreboard (via submitGameResults or backToScoreboard), maintain that phase.
+                // CRITICAL FIX: If host explicitly set to review scoreboard (via backToScoreboard), maintain that phase.
                 // Otherwise, if backend says 'in_progress' and we are not reviewing, we display the current game.
                 newPhase = isReviewingScoreboard ? 'scoreboard' : 'game';
 
@@ -119,7 +123,7 @@ function MatchController({ isHost }) {
                 phase: 'error'
             }));
         }
-    }, [roomCode, isReviewingScoreboard]); // Add isReviewingScoreboard as a dependency
+    }, [roomCode, isReviewingScoreboard, forceShowScoreboard]); // Add forceShowScoreboard as a dependency
 
 
     // --- WebSocket Integration useEffect ---
@@ -213,12 +217,12 @@ function MatchController({ isHost }) {
                 // This call will update backend status to 'finished', which will then trigger fetchMatchDetails to change phase to 'finished'
                 await apiService.nextGame(roomCode, matchState.totalGames, true);
                 setIsReviewingScoreboard(false); // Reset for final results
+                setForceShowScoreboard(false);
             } else {
-                // If not the last game, transition to scoreboard locally for the host.
-                // This ensures immediate UI feedback for the host without waiting for backend's next game status change.
-                setMatchState(prev => ({ ...prev, phase: 'scoreboard' }));
-                setIsReviewingScoreboard(true); // Indicate that host is now reviewing scoreboard
-                console.log('MatchController: Game results submitted. Transitioning to scoreboard locally for host.');
+                setForceShowScoreboard(true); // Ensure scoreboard is shown after submit and persists until next game
+                setIsReviewingScoreboard(false);
+                // No need to set phase here; fetchMatchDetails will handle it
+                console.log('MatchController: Game results submitted. Will show scoreboard after backend update.');
             }
             // --- END CRITICAL FIX ---
 
@@ -250,6 +254,7 @@ function MatchController({ isHost }) {
             // fetchMatchDetails (triggered by WebSocket) will handle the phase transition
             // to 'game' for the next game, or 'finished' if it's the end.
             setIsReviewingScoreboard(false); // Reset this flag as we are now moving past scoreboard review (to next game or final results)
+            setForceShowScoreboard(false); // Allow phase to move on from scoreboard
         } catch (error) {
             console.error('MatchController: Failed to load next game (API error):', error);
             setMatchState(prev => ({ ...prev, error: `Failed to load next game: ${error.message}` }));
@@ -277,6 +282,10 @@ function MatchController({ isHost }) {
         }
     };
 
+    const resumeGame = () => {
+        setMatchState(prev => ({ ...prev, phase: 'game' }));
+        setIsReviewingScoreboard(false);
+    };
 
     // --- Conditional Rendering for different match phases/states ---
 
@@ -343,6 +352,7 @@ function MatchController({ isHost }) {
                     isHost={isHost}
                     nextGame={nextGame}
                     isReviewingScoreboard={isReviewingScoreboard}
+                    resumeGame={resumeGame}
                 />
             )}
 

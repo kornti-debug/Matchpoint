@@ -1,8 +1,10 @@
 // src/components/FinalResults.jsx
 import React from 'react';
+import {useNavigate} from "react-router-dom";
 
 function FinalResults({ roomCode, matchState, isHost }) {
     const { matchDetails, players, scores } = matchState;
+    const navigate = useNavigate()
 
     // Sort players by their final score to display a ranked list
     const finalPlayerScores = players
@@ -11,6 +13,10 @@ function FinalResults({ roomCode, matchState, isHost }) {
             score: scores[player.id] || 0 // Use the score from the scores object
         }))
         .sort((a, b) => b.score - a.score); // Sort descending by score
+
+    const handleBackToDashboard = () => {
+        navigate(`/dashboard`);
+    }
 
     // Find the winner's name using the winner_id from matchDetails
     const winnerPlayer = matchDetails.winner_id
@@ -62,7 +68,7 @@ function FinalResults({ roomCode, matchState, isHost }) {
             {isHost && (
                 <div className="mt-8 border-t border-gray-700 pt-6">
                     <button
-                        onClick={() => { /* Implement navigation back to dashboard or match list */ }}
+                        onClick={handleBackToDashboard}
                         className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg shadow-md transition duration-300 transform hover:scale-105"
                     >
                         Back to Dashboard
