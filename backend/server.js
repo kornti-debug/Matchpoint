@@ -3,11 +3,13 @@ const http = require('http'); // Import http module for Socket.IO
 const { Server } = require('socket.io'); // Import Server from socket.io
 const cors = require('cors');
 const app = express();
-const port = process.env.PORT || 3000; // Use port from .env or default to 3000
+require('dotenv').config(); // Load environment variables
+// Default to 3000 if PORT is not defined in any .env file
+const port = process.env.PORT || 3000;
 
 const bodyParser = require('body-parser');
 const cookieParser = require('cookie-parser');
-require('dotenv').config(); // Load environment variables
+
 
 require('./services/database'); // Connect to MySQL database
 
@@ -19,8 +21,9 @@ app.use(cookieParser());
 app.use(bodyParser.json()); // Parse JSON request bodies
 app.use(bodyParser.urlencoded({ extended: true })); // Parse form data
 
+const allowedFrontendOrigin = process.env.FRONTEND_URL;
 const corsOptions = {
-    origin: ['http://localhost:5173', 'http://127.0.0.1:5173'], // Allow your frontend URL(s)
+    origin: allowedFrontendOrigin, // Allow your frontend URL(s)
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
     allowedHeaders: ['Content-Type', 'Authorization']

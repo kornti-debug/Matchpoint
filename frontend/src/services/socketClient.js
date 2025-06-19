@@ -2,8 +2,8 @@
 import { io } from "socket.io-client";
 
 // Define your backend Socket.IO URL
-const SOCKET_SERVER_URL = "http://localhost:3000"; // IMPORTANT: Ensure this matches your backend HTTP/Socket.IO server port
-
+const SOCKET_SERVER_URL = import.meta.env.VITE_SOCKET_SERVER_URL; // IMPORTANT: Ensure this matches your backend HTTP/Socket.IO server port
+console.log("Socket.IO Client: Using SOCKET_SERVER_URL:", SOCKET_SERVER_URL);
 let socket = null; // Private variable to hold the socket instance
 
 /**
@@ -11,18 +11,31 @@ let socket = null; // Private variable to hold the socket instance
  * @param {string} roomCode - The room code for the match to join.
  */
 export const connectSocket = (roomCode) => {
+
+    if (!SOCKET_SERVER_URL) {
+        console.error("Socket.IO Client: SOCKET_SERVER_URL is not defined. Check your .env files.");
+        return;
+    }
     // If socket exists and is already connected, no need to create a new one.
     // Just ensure it's in the right room by re-emitting 'joinMatchRoom'.
-    if (socket && socket.connected) {
-        console.log('Socket.IO Client: Already connected. Ensuring presence in room:', roomCode);
+    if (socket && socket.connected && socket.io.uri === SOCKET_SERVER_URL) {
+        console.log(`Socket.IO Client: Already connected to ${SOCKET_SERVER_URL}. Attempting to join room: ${roomCode}`);
         socket.emit('joinMatchRoom', roomCode);
         return;
     }
 
     console.log('Socket.IO Client: Attempting to establish new connection for room:', roomCode);
     socket = io(SOCKET_SERVER_URL, {
-        // Optional: Pass JWT token for authentication if your Socket.IO server requires it
-        auth: { token: localStorage.getItem('token') }
+        reconnection: true,             // Enable reconnection attempts
+        reconnectionAttempts: Infinity, // Unlimited reconnection attempts
+        reconnectionDelay: 1000,        // Start with 1 second delay
+        reconnectionDelayMax: 5000,     // Max delay 5 seconds
+        timeout: 20000,                 // Connection timeout
+        transports: ['websocket'],      // Prioritize WebSockets
+        withCredentials: true,          // Include cookies with the connection (if any)
+        auth: {                         // Custom authentication data (e.g., JWT)
+            token: localStorage.getItem('token')
+        }
     });
 
     // Event listeners for the Socket.IO client
@@ -37,60 +50,96 @@ export const connectSocket = (roomCode) => {
     });
 
     socket.on('connect_error', (error) => {
-        console.error('Socket.IO Client: Connection Error:', error.message);
-    });
-};
-
-/**
- * Disconnects the Socket.IO client.
- * @param {string} roomCode - The room code of the match to leave (optional, for server notification).
- */
-export const disconnectSocket = (roomCode) => {
-    if (socket && socket.connected) { // Only disconnect if socket exists and is connected
-        console.log('Socket.IO Client: Disconnecting and attempting to leave room:', roomCode);
-        if (roomCode) {
-            socket.emit('leaveMatchRoom', roomCode); // Inform server we are leaving
+        console.error(`Socket.IO Client: Connection error: ${error.message}. Please check SOCKET_SERVER_URL and backend server status/firewall.`);
+        console.error(`Socket.IO Client: Connect error details:`, error);
+        if (error.message.includes('Authentication error') || error.message.includes('Forbidden')) {
+            console.error('Socket.IO Client: Authentication failed. User might need to log in again or token is invalid.');
+            // Optionally, force logout or redirect to login page here
+            // Example: localStorage.removeItem('token'); window.location.href = '/login';
         }
-        socket.disconnect(); // Disconnects the socket
+    });
+
+    socket.on('reconnect_attempt', (attemptNumber) => {
+        console.log(`Socket.IO Client: Reconnect attempt #${attemptNumber}`);
+    });
+
+    socket.on('reconnect', (attemptNumber) => {
+        console.log(`Socket.IO Client: Reconnected successfully after ${attemptNumber} attempts.`);
+        // Re-join room on reconnect, in case the server forgot
+        socket.emit('join_room', { roomCode });
+    });
+
+    socket.on('reconnect_error', (error) => {
+        console.error(`Socket.IO Client: Reconnection error: ${error.message}`);
+    });
+
+    socket.on('reconnect_failed', () => {
+        console.error('Socket.IO Client: Reconnection failed permanently.');
+    });
+
+    socket.on('error', (error) => {
+        console.error(`Socket.IO Client: General error: ${error.message}`);
+    });
+
+    // Emit join_room immediately if already connected (e.g., initial load)
+    if (socket.connected) {
+        socket.emit('join_room', { roomCode });
     }
-    socket = null; // Clear the instance regardless of prior connection status
 };
 
+
 /**
- * Registers a listener for a specific Socket.IO event.
+ * Registers an event listener for a Socket.IO event.
  * @param {string} eventName - The name of the event to listen for.
- * @param {Function} callback - The callback function to execute when the event is received.
+ * @param {function} callback - The callback function to execute when the event occurs.
  */
 export const onSocketEvent = (eventName, callback) => {
     if (socket) {
+        console.log(`Socket.IO Client: Registering listener for event: ${eventName}`);
         socket.on(eventName, callback);
     } else {
-        console.warn(`Socket.IO Client: Not connected. Cannot register listener for '${eventName}'.`);
+        console.warn(`Socket.IO Client: Socket not connected. Cannot register listener for ${eventName}.`);
     }
 };
 
 /**
- * Removes a listener for a specific Socket.IO event.
+ * Removes an event listener for a Socket.IO event.
  * @param {string} eventName - The name of the event to remove the listener from.
- * @param {Function} callback - The specific callback function to remove.
+ * @param {function} callback - The original callback function that was registered.
  */
 export const offSocketEvent = (eventName, callback) => {
     if (socket) {
+        console.log(`Socket.IO Client: Removing listener for event: ${eventName}`);
         socket.off(eventName, callback);
     }
 };
 
 /**
- * Emits an event to the Socket.IO server.
+ * Emits a Socket.IO event to the server.
  * @param {string} eventName - The name of the event to emit.
- * @param {*} data - The data to send with the event.
+ * @param {object} data - The data to send with the event.
  */
 export const emitSocketEvent = (eventName, data) => {
-    if (socket && socket.connected) {
-        console.log(`Socket.IO Client: Emitting '${eventName}' with data:`, data);
+    if (socket) {
+        console.log(`Socket.IO Client: Emitting event: ${eventName} with data:`, data);
         socket.emit(eventName, data);
     } else {
-        console.warn(`Socket.IO Client: Not connected. Cannot emit '${eventName}'.`);
+        console.warn(`Socket.IO Client: Socket not connected. Cannot emit event: ${eventName}.`);
+    }
+};
+
+/**
+ * Disconnects the main Socket.IO connection.
+ * @param {string} roomCode - The room code to leave.
+ */
+export const disconnectSocket = (roomCode) => {
+    if (socket) {
+        console.log(`Socket.IO Client: Disconnecting and attempting to leave room: ${roomCode}`);
+        socket.emit('leave_room', { roomCode }); // Tell server you're leaving the room
+        // Do NOT call socket.disconnect() here unless it's a full app shutdown,
+        // as connectSocket already handles reconnection attempts.
+        // For simple room changes, just leaving the room on the server side is enough.
+        // If you truly need to sever the connection: socket.disconnect();
     }
 };
 

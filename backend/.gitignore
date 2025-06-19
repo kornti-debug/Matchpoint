@@ -1,0 +1,34 @@
+# backend/.gitignore
+
+# Environment variables
+.env
+.env.production
+.env.*.local
+.env.local
+
+# Node modules
+node_modules/
+
+# Logs
+logs/
+*.log
+
+# Test coverage reports
+coverage/
+
+# npm cache
+.npm/
+npm-debug.log*
+yarn-debug.log*
+.yarn/cache/
+
+# build outputs (if any are generated directly in backend, e.g. for serverless builds)
+dist/
+build/
+
+# Other common ignores
+.DS_Store
+.idea/
+*.sqlite
+*.sqlite-journal
+*.db

@@ -1,7 +1,9 @@
 // services/apiService.js
 
 // Make sure this matches your actual backend URL
-const API_URL = 'http://localhost:3000/api';
+const API_BASE_URL = import.meta.env.VITE_API_URL;
+
+const buildApiUrl = (path) => `${API_BASE_URL}/api${path}`
 
 // Helper to handle common response logic
 const handleResponse = async (response, defaultErrorMessage) => {
@@ -34,7 +36,7 @@ const getAuthHeaders = () => {
 
 export const login = async (username, password) => {
     try {
-        const response = await fetch(`${API_URL}/auth/login`, {
+        const response = await fetch(buildApiUrl('/auth/login'), {
             method: 'POST',
             headers:{
                 'Content-Type': 'application/json',
@@ -50,7 +52,7 @@ export const login = async (username, password) => {
 
 export const register = async (username, password) => {
     try {
-        const response = await fetch(`${API_URL}/auth/register`, {
+        const response = await fetch(buildApiUrl('/auth/register'), {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -67,7 +69,7 @@ export const register = async (username, password) => {
 export const createMatch = async (matchName, gameSequence) => {
     try {
         console.log("Creating match with name:", matchName, "and sequence:", gameSequence);
-        const response = await fetch(`${API_URL}/matches`, {
+        const response = await fetch(buildApiUrl('/matches'), {
             method: 'POST',
             headers: getAuthHeaders(),
             body: JSON.stringify({matchName, gameSequence})
@@ -82,7 +84,7 @@ export const createMatch = async (matchName, gameSequence) => {
 export const createGame = async (gameData) => {
     try {
         console.log("Creating game with data:", gameData);
-        const response = await fetch(`${API_URL}/games/create`, {
+        const response = await fetch(buildApiUrl('/games/create'), {
             method: 'POST',
             headers: getAuthHeaders(),
             body: JSON.stringify(gameData)
@@ -96,7 +98,7 @@ export const createGame = async (gameData) => {
 
 export const getMatchDetails = async (roomCode) => {
     try {
-        const response = await fetch(`${API_URL}/matches/${roomCode}`, {
+        const response = await fetch(buildApiUrl(`/matches/${roomCode}`), {
             method: 'GET',
             headers: getAuthHeaders()
         });
@@ -110,7 +112,7 @@ export const getMatchDetails = async (roomCode) => {
 export const getAllGames = async () => {
     try {
         console.log('Frontend: Fetching all games from backend.');
-        const response = await fetch(`${API_URL}/games`, { // Endpoint: /api/games
+        const response = await fetch(buildApiUrl(`/games`), { // Endpoint: /api/games
             method: 'GET',
             headers: getAuthHeaders()
         });
@@ -129,7 +131,7 @@ export const getAllGames = async () => {
 export const getGameData = async (gameId) => {
     try {
         console.log(`Frontend: Fetching game data for ID ${gameId} from backend.`);
-        const response = await fetch(`${API_URL}/games/${gameId}`, { // Endpoint: /api/games/:id
+        const response = await fetch(buildApiUrl(`/games/${gameId}`), { // Endpoint: /api/games/:id
             method: 'GET',
             headers: getAuthHeaders()
         });
@@ -154,7 +156,7 @@ export const getGameData = async (gameId) => {
 export const updateGame = async (gameId, gameData) => {
     try {
         console.log(`Frontend: Updating game with ID ${gameId} with data:`, gameData);
-        const response = await fetch(`${API_URL}/games/${gameId}`, {
+        const response = await fetch(buildApiUrl(`/games/${gameId}`), {
             method: 'PUT', // Use PUT method for updating
             headers: getAuthHeaders(),
             body: JSON.stringify(gameData)
@@ -169,7 +171,7 @@ export const updateGame = async (gameId, gameData) => {
 export const deleteGame = async (gameId) => {
     try {
         console.log(`Frontend: Deleting game with ID ${gameId}.`);
-        const response = await fetch(`${API_URL}/games/${gameId}`, {
+        const response = await fetch(buildApiUrl(`/games/${gameId}`), {
             method: 'DELETE', // Use DELETE method
             headers: getAuthHeaders()
         });
@@ -182,7 +184,7 @@ export const deleteGame = async (gameId) => {
 
 export const updateMatchName = async (roomCode, matchName) => {
     try {
-        const response = await fetch(`${API_URL}/matches/${roomCode}`, {
+        const response = await fetch(buildApiUrl(`/matches/${roomCode}`), {
             method: 'PATCH',
             headers: getAuthHeaders(),
             body: JSON.stringify({ matchName: matchName })
@@ -196,7 +198,7 @@ export const updateMatchName = async (roomCode, matchName) => {
 
 export const joinMatch = async (roomCode) => {
     try {
-        const response = await fetch(`${API_URL}/matches/${roomCode}/join`, {
+        const response = await fetch(buildApiUrl(`/matches/${roomCode}/join`), {
             method: 'POST',
             headers: getAuthHeaders(),
         });
@@ -212,7 +214,7 @@ export const joinMatch = async (roomCode) => {
 export const submitGameResults = async (roomCode, gameNumber, winners, points) => {
     try {
         console.log(`Frontend: Submitting game results for match ${roomCode}, game ${gameNumber}. Winners: ${JSON.stringify(winners)}, Points: ${points}`);
-        const response = await fetch(`${API_URL}/matches/${roomCode}/results`, {
+        const response = await fetch(buildApiUrl(`/matches/${roomCode}/results`), {
             method: 'POST',
             headers: getAuthHeaders(),
             body: JSON.stringify({ gameNumber, winners, points })
@@ -228,7 +230,7 @@ export const submitGameResults = async (roomCode, gameNumber, winners, points) =
 export const startMatch = async (roomCode) => {
     try {
         console.log(`Frontend: Requesting to START match ${roomCode} from backend.`);
-        const response = await fetch(`${API_URL}/matches/${roomCode}/start`, {
+        const response = await fetch(buildApiUrl(`/matches/${roomCode}/start`), {
             method: 'POST',
             headers: getAuthHeaders(),
             body: JSON.stringify({}) // Send an empty object if no specific body is needed by backend
@@ -243,7 +245,7 @@ export const startMatch = async (roomCode) => {
 export const nextGame = async (roomCode, newGameNumber, isMatchFinished) => {
     try {
         console.log(`Frontend: Requesting next game for match ${roomCode}, game ${newGameNumber}. Finished: ${isMatchFinished}`);
-        const response = await fetch(`${API_URL}/matches/${roomCode}/next-game`, {
+        const response = await fetch(buildApiUrl(`/matches/${roomCode}/next-game`), {
             method: 'POST',
             headers: getAuthHeaders(),
             body: JSON.stringify({ newGameNumber, isMatchFinished })
