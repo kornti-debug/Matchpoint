@@ -3,7 +3,13 @@ const http = require('http'); // Import http module for Socket.IO
 const { Server } = require('socket.io'); // Import Server from socket.io
 const cors = require('cors');
 const app = express();
-require('dotenv').config(); // Load environment variables
+require('dotenv').config({
+    path: process.env.NODE_ENV === 'production' ? '.env.production' : '.env'
+}); // Load environment variables
+
+console.log('NODE_ENV:', process.env.NODE_ENV);
+console.log('Using PORT:', process.env.PORT);
+
 // Default to 3000 if PORT is not defined in any .env file
 const port = process.env.PORT || 3000;
 
