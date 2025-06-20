@@ -19,6 +19,7 @@ const initializeSocketIO = (socketIoServer) => {
 
         // Client wants to join a specific match room (e.g., when MatchController mounts)
         socket.on('joinMatchRoom', (roomCode) => {
+            console.log(`Socket.IO Backend: Received joinMatchRoom for room: "${roomCode}" (Type: ${typeof roomCode}) from client ${socket.id}`);
             if (typeof roomCode === 'string' && roomCode.length > 0) {
                 socket.join(roomCode);
                 console.log(`Socket.IO Backend: Client ${socket.id} joined room: ${roomCode}. Clients in room: ${ioInstance.sockets.adapter.rooms.get(roomCode)?.size || 0}`);
@@ -29,6 +30,7 @@ const initializeSocketIO = (socketIoServer) => {
 
         // Client is leaving a specific match room (e.g., when MatchController unmounts)
         socket.on('leaveMatchRoom', (roomCode) => {
+            console.log(`Socket.IO Backend: Received leaveMatchRoom for room: "${roomCode}" (Type: ${typeof roomCode}) from client ${socket.id}`);
             if (typeof roomCode === 'string' && roomCode.length > 0) {
                 socket.leave(roomCode);
                 console.log(`Socket.IO Backend: Client ${socket.id} left room: ${roomCode}. Clients remaining in room: ${ioInstance.sockets.adapter.rooms.get(roomCode)?.size || 0}`);

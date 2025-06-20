@@ -5,6 +5,7 @@ import { io } from "socket.io-client";
 const SOCKET_SERVER_URL = import.meta.env.VITE_SOCKET_SERVER_URL; // IMPORTANT: Ensure this matches your backend HTTP/Socket.IO server port
 console.log("Socket.IO Client: Using SOCKET_SERVER_URL:", SOCKET_SERVER_URL);
 let socket = null; // Private variable to hold the socket instance
+let currentRoomCode = null
 
 /**
  * Connects to the Socket.IO server and joins a specific match room.
@@ -16,15 +17,17 @@ export const connectSocket = (roomCode) => {
         console.error("Socket.IO Client: SOCKET_SERVER_URL is not defined. Check your .env files.");
         return;
     }
+
+    currentRoomCode = roomCode;
     // If socket exists and is already connected, no need to create a new one.
     // Just ensure it's in the right room by re-emitting 'joinMatchRoom'.
     if (socket && socket.connected && socket.io.uri === SOCKET_SERVER_URL) {
-        console.log(`Socket.IO Client: Already connected to ${SOCKET_SERVER_URL}. Attempting to join room: ${roomCode}`);
-        socket.emit('joinMatchRoom', roomCode);
+        console.log(`Socket.IO Client: Already connected to ${SOCKET_SERVER_URL}. Re-emitting joinMatchRoomor: ${currentRoomCode}`);
+        socket.emit('joinMatchRoom', currentRoomCode); // Ensure we use currentRoomCode
         return;
     }
 
-    console.log('Socket.IO Client: Attempting to establish new connection for room:', roomCode);
+    console.log(`Socket.IO Client: Attempting to establish NEW connection to: ${SOCKET_SERVER_URL} for room: ${currentRoomCode}`);
     socket = io(SOCKET_SERVER_URL, {
         reconnection: true,             // Enable reconnection attempts
         reconnectionAttempts: Infinity, // Unlimited reconnection attempts
@@ -40,13 +43,13 @@ export const connectSocket = (roomCode) => {
 
     // Event listeners for the Socket.IO client
     socket.on('connect', () => {
-        console.log('Socket.IO Client: Connected to server with ID:', socket.id);
+        console.log(`Socket.IO Client: CONNECTED to server with ID: ${socket.id}. Attempting to join room: ${currentRoomCode}`);
         // Emit event to join the specific match room as soon as connected
-        socket.emit('joinMatchRoom', roomCode);
+        socket.emit('joinMatchRoom', currentRoomCode);
     });
 
     socket.on('disconnect', (reason) => {
-        console.log('Socket.IO Client: Disconnected from server. Reason:', reason);
+        console.log(`Socket.IO Client: DISCONNECTED from server. Reason: ${reason}. Socket ID: ${socket.id}`);
     });
 
     socket.on('connect_error', (error) => {
@@ -64,9 +67,9 @@ export const connectSocket = (roomCode) => {
     });
 
     socket.on('reconnect', (attemptNumber) => {
-        console.log(`Socket.IO Client: Reconnected successfully after ${attemptNumber} attempts.`);
+        console.log(`Socket.IO Client: RECONNECTED successfully after ${attemptNumber} attempts. New Socket ID: ${socket.id}. Re-emitting joinMatchRoom for: ${currentRoomCode}`);
         // Re-join room on reconnect, in case the server forgot
-        socket.emit('join_room', { roomCode });
+        socket.emit('joinMatchRoom', currentRoomCode);
     });
 
     socket.on('reconnect_error', (error) => {
@@ -81,10 +84,6 @@ export const connectSocket = (roomCode) => {
         console.error(`Socket.IO Client: General error: ${error.message}`);
     });
 
-    // Emit join_room immediately if already connected (e.g., initial load)
-    if (socket.connected) {
-        socket.emit('join_room', { roomCode });
-    }
 };
 
 
@@ -134,8 +133,8 @@ export const emitSocketEvent = (eventName, data) => {
  */
 export const disconnectSocket = (roomCode) => {
     if (socket) {
-        console.log(`Socket.IO Client: Disconnecting and attempting to leave room: ${roomCode}`);
-        socket.emit('leave_room', { roomCode }); // Tell server you're leaving the room
+        console.log(`Socket.IO Client: Emitting leave_room for: ${roomCode}. Socket ID: ${socket.id}`); // Add Socket ID
+        socket.emit('leaveMatchRoom', roomCode); // Tell server you're leaving the room
         // Do NOT call socket.disconnect() here unless it's a full app shutdown,
         // as connectSocket already handles reconnection attempts.
         // For simple room changes, just leaving the room on the server side is enough.
