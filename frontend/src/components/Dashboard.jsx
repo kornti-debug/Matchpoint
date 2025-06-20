@@ -214,7 +214,7 @@ function Dashboard() {
                                 value={roomCodeInput}
                                 onChange={(e) => setRoomCodeInput(e.target.value)}
                                 className="w-full p-3 rounded-lg bg-gray-700 text-white placeholder-gray-400 border border-gray-600 focus:outline-none focus:ring-2 focus:ring-yellow-500"
-                                placeholder="e.g., AB32AF"
+                                placeholder="e.g., 5489"
                                 maxLength="6"
                                 required
                             />

@@ -27,6 +27,11 @@ function PlayerLobby({ roomCode, matchState, setMatchState }) {
                 // This means user is logged in, but not found in match.players for a 'waiting' match.
                 setJoinMessage("It looks like you haven't fully joined this match yet. Please try again or ensure you clicked 'Join Match' on the Dashboard.");
             }
+        } else if (currentUserId && matchState.matchDetails.status === 'waiting') {
+            // User is logged in, match is waiting, but players data might not be loaded yet
+            // This is likely a race condition - give it a moment to sync
+            setJoinMessage("Joining match... Please wait a moment for the data to sync.");
+            setHasJoined(true); // Assume they joined since they navigated here from Dashboard
         } else {
             // User ID not found in localStorage, or no players fetched for the match yet
             setJoinMessage("Waiting for match details or your player status to load...");

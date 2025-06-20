@@ -17,6 +17,7 @@ function Register(){
             try{
                 const data = await apiService.register(username,password)
                 localStorage.setItem('token', data.token)
+                localStorage.setItem('userId', data.user.id.toString())
                 navigate('/dashboard')
             } catch (error) {
                 setError(error.message)

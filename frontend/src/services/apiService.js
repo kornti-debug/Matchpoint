@@ -198,6 +198,7 @@ export const updateMatchName = async (roomCode, matchName) => {
 
 export const joinMatch = async (roomCode) => {
     try {
+        console.log(`Frontend: Joining match ${roomCode} from backend.`);
         const response = await fetch(buildApiUrl(`/matches/${roomCode}/join`), {
             method: 'POST',
             headers: getAuthHeaders(),

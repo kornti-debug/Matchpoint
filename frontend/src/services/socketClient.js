@@ -3,7 +3,6 @@ import { io } from "socket.io-client";
 
 // Define your backend Socket.IO URL
 const SOCKET_SERVER_URL = import.meta.env.VITE_SOCKET_SERVER_URL; // IMPORTANT: Ensure this matches your backend HTTP/Socket.IO server port
-console.log("Socket.IO Client: Using SOCKET_SERVER_URL:", SOCKET_SERVER_URL);
 let socket = null; // Private variable to hold the socket instance
 let currentRoomCode = null
 
@@ -23,12 +22,10 @@ export const connectSocket = (roomCode) => {
     // If socket exists and is already connected, no need to create a new one.
     // Just ensure it's in the right room by re-emitting 'joinMatchRoom'.
     if (socket && socket.connected && socket.io.uri === SOCKET_SERVER_URL) {
-        console.log(`Socket.IO Client: Already connected to ${SOCKET_SERVER_URL}. Re-emitting joinMatchRoomor: ${currentRoomCode}`);
         socket.emit('joinMatchRoom', currentRoomCode); // Ensure we use currentRoomCode
         return;
     }
 
-    console.log(`Socket.IO Client: Attempting to establish NEW connection to: ${SOCKET_SERVER_URL} for room: ${currentRoomCode}`);
     socket = io(SOCKET_SERVER_URL, {
         reconnection: true,             // Enable reconnection attempts
         reconnectionAttempts: Infinity, // Unlimited reconnection attempts
@@ -95,7 +92,6 @@ export const connectSocket = (roomCode) => {
  */
 export const onSocketEvent = (eventName, callback) => {
     if (socket) {
-        console.log(`Socket.IO Client: Registering listener for event: ${eventName}`);
         socket.on(eventName, callback);
     } else {
         console.warn(`Socket.IO Client: Socket not connected. Cannot register listener for ${eventName}.`);
@@ -109,7 +105,6 @@ export const onSocketEvent = (eventName, callback) => {
  */
 export const offSocketEvent = (eventName, callback) => {
     if (socket) {
-        console.log(`Socket.IO Client: Removing listener for event: ${eventName}`);
         socket.off(eventName, callback);
     }
 };
@@ -121,7 +116,6 @@ export const offSocketEvent = (eventName, callback) => {
  */
 export const emitSocketEvent = (eventName, data) => {
     if (socket) {
-        console.log(`Socket.IO Client: Emitting event: ${eventName} with data:`, data);
         socket.emit(eventName, data);
     } else {
         console.warn(`Socket.IO Client: Socket not connected. Cannot emit event: ${eventName}.`);

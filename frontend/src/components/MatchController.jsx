@@ -17,8 +17,7 @@ import Scoreboard from "./Scoreboard.jsx";
 import FinalResults from "./FinalResults.jsx";
 
 function MatchController({ isHost }) {
-    const { roomCode: rawRoomCode } = useParams();
-    const roomCode = rawRoomCode.toLowerCase(); // NORMALIZE
+    const {roomCode} = useParams();
 
     const [matchState, setMatchState] = useState({
         phase: 'loading',
@@ -50,12 +49,6 @@ function MatchController({ isHost }) {
         try {
             const apiResponse = await apiService.getMatchDetails(roomCode);
             const matchData = apiResponse.match; // Extract the 'match' object
-
-            // --- DEBUG: Console logs for clarity ---
-            console.log('MatchController: fetchMatchDetails - Raw API Response:', apiResponse);
-            console.log('MatchController: fetchMatchDetails - Extracted MatchData:', matchData);
-            console.log('MatchController: fetchMatchDetails - Game Sequence (from MatchData):', matchData?.game_sequence, 'Type:', typeof matchData?.game_sequence, 'Is Array:', Array.isArray(matchData?.game_sequence));
-            // --- END DEBUG ---
 
             let newPhase;
             let initialGameData = null;
@@ -106,7 +99,6 @@ function MatchController({ isHost }) {
                 gameData: initialGameData,
                 isLoading: false
             }));
-            console.log('MatchController: matchState after fetch (final state set):', { apiResponse, matchData, newPhase });
 
             // Only reset isReviewingScoreboard if we actually transitioned away from a scoreboard state
             // or if the backend status changed to 'finished' or 'waiting' (not 'in_progress').
@@ -135,7 +127,6 @@ function MatchController({ isHost }) {
     }, [fetchMatchDetails]);
 
     useEffect(() => {
-        console.log('MatchController: Setting up WebSocket connection for room:', roomCode);
         connectSocket(roomCode);
 
         // Listen for the generic 'match_event' that your backend broadcasts
@@ -143,7 +134,6 @@ function MatchController({ isHost }) {
 
         // Cleanup: Disconnect socket and remove listener when component unmounts
         return () => {
-            console.log('MatchController: Cleaning up WebSocket connection for room:', roomCode);
             disconnectSocket(roomCode);
             offSocketEvent('match_event', handleSocketIoMessage);
         };
