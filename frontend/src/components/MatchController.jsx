@@ -17,7 +17,8 @@ import Scoreboard from "./Scoreboard.jsx";
 import FinalResults from "./FinalResults.jsx";
 
 function MatchController({ isHost }) {
-    const { roomCode } = useParams();
+    const { roomCode: rawRoomCode } = useParams();
+    const roomCode = rawRoomCode.toLowerCase(); // NORMALIZE
 
     const [matchState, setMatchState] = useState({
         phase: 'loading',
@@ -129,7 +130,6 @@ function MatchController({ isHost }) {
     // --- WebSocket Integration useEffect ---
     const handleSocketIoMessage = useCallback((message) => {
         console.log(`[MatchController] handleSocketIoMessage: WebSocket Message Received. Type: ${message?.type || 'Unknown'}. Full message:`, message);
-        console.log(`[MatchController] handleSocketIoMessage: Triggering fetchMatchDetails. Current isReviewingScoreboard: ${isReviewingScoreboard}`);
         // Any match-related update from WebSocket triggers a full re-fetch to re-sync UI.
         fetchMatchDetails();
     }, [fetchMatchDetails]);

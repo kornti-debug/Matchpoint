@@ -46,7 +46,8 @@ const createMatch = async (req, res) => {
  */
 const getMatchDetails = async (req, res) => {
     try {
-        const { roomCode } = req.params;
+        const { roomCode: rawRoomCode } = req.params;
+        const roomCode = rawRoomCode.toLowerCase();
         const match = await matchModel.getMatchByRoomCode(roomCode);
         if (!match) {
             return res.status(404).json({ success: false, error: 'Match not found.' });
@@ -64,7 +65,8 @@ const getMatchDetails = async (req, res) => {
  */
 const updateMatchName = async (req, res) => {
     try {
-        const { roomCode } = req.params;
+        const { roomCode: rawRoomCode } = req.params;
+        const roomCode = rawRoomCode.toLowerCase();
         const { matchName } = req.body;
         const userId = req.user.id;
         const broadcastToRoom = getBroadcastToRoom(req);
@@ -104,7 +106,8 @@ const updateMatchName = async (req, res) => {
 const joinMatch = async (req, res) => {
     try {
         const userId = req.user.id;
-        const { roomCode } = req.params;
+        const { roomCode: rawRoomCode } = req.params;
+        const roomCode = rawRoomCode.toLowerCase();
         const broadcastToRoom = getBroadcastToRoom(req);
 
         console.log(`Backend: joinMatch request for roomCode: ${roomCode}, userId: ${userId}`);
@@ -130,7 +133,7 @@ const joinMatch = async (req, res) => {
         }
 
         // Get updated list of players and scores for broadcasting
-        const updatedMatch = await matchModel.getMatchByRoomCode(roomCode); // Fetch the latest state
+        const updatedMatch = await matchModel.getMatchByRoomCode(roomCode);
         const updatedPlayers = updatedMatch.players;
         const updatedScores = updatedMatch.scores;
 
@@ -162,7 +165,8 @@ const joinMatch = async (req, res) => {
  */
 const startMatch = async (req, res) => {
     try {
-        const { roomCode } = req.params;
+        const { roomCode: rawRoomCode } = req.params;
+        const roomCode = rawRoomCode.toLowerCase();
         const broadcastToRoom = getBroadcastToRoom(req);
         const userId = req.user.id; // Host ID for authorization
 
@@ -234,7 +238,8 @@ const startMatch = async (req, res) => {
  */
 const submitGameResults = async (req, res) => {
     try {
-        const { roomCode } = req.params;
+        const { roomCode: rawRoomCode } = req.params;
+        const roomCode = rawRoomCode.toLowerCase();
         const { gameNumber, winners, points } = req.body; // Use points as in your code
         const broadcastToRoom = getBroadcastToRoom(req);
         const userId = req.user.id; // Host ID for authorization
@@ -299,8 +304,9 @@ const submitGameResults = async (req, res) => {
  */
 const nextGame = async (req, res) => {
     try {
-        const { roomCode } = req.params;
-        let { newGameNumber, isMatchFinished } = req.body;
+        const { roomCode: rawRoomCode } = req.params;
+        const roomCode = rawRoomCode.toLowerCase();
+        const { newGameNumber, isMatchFinished } = req.body;
         const broadcastToRoom = getBroadcastToRoom(req);
         const userId = req.user.id; // Host ID for authorization
 

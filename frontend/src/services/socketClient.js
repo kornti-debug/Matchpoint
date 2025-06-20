@@ -18,7 +18,8 @@ export const connectSocket = (roomCode) => {
         return;
     }
 
-    currentRoomCode = roomCode;
+    const normalizedRoomCode = roomCode.toLowerCase();
+    currentRoomCode = normalizedRoomCode;
     // If socket exists and is already connected, no need to create a new one.
     // Just ensure it's in the right room by re-emitting 'joinMatchRoom'.
     if (socket && socket.connected && socket.io.uri === SOCKET_SERVER_URL) {
@@ -133,8 +134,9 @@ export const emitSocketEvent = (eventName, data) => {
  */
 export const disconnectSocket = (roomCode) => {
     if (socket) {
-        console.log(`Socket.IO Client: Emitting leave_room for: ${roomCode}. Socket ID: ${socket.id}`); // Add Socket ID
-        socket.emit('leaveMatchRoom', roomCode); // Tell server you're leaving the room
+        const normalizedRoomCode = roomCode.toLowerCase();
+        console.log(`Socket.IO Client: Emitting leave_room for: ${normalizedRoomCode}. Socket ID: ${socket.id}`); // Add Socket ID
+        socket.emit('leaveMatchRoom', normalizedRoomCode); // Tell server you're leaving the room
         // Do NOT call socket.disconnect() here unless it's a full app shutdown,
         // as connectSocket already handles reconnection attempts.
         // For simple room changes, just leaving the room on the server side is enough.
