@@ -12,7 +12,10 @@ const app = express();
 
 // Dynamically get the port from environment variables, or default to 5173
 // process.env.PORT will now be populated by dotenv/config
-const port = process.env.PORT || 5173;
+//const port = process.env.PORT || 5173;
+
+// TODO: Remove this after testing
+const port = 5173;
 
 // Serve static files from the 'dist' directory
 app.use(express.static(path.join(__dirname, 'dist')));

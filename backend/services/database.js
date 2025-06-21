@@ -15,13 +15,10 @@ const config = mysql.createPool({
     // Pool configuration
     connectionLimit: 10,                 // Maximum number of connections in pool
     acquireTimeout: 60000,              // Time to acquire connection (60 seconds)
-    timeout: 60000,                     // Query timeout (60 seconds)
-    reconnect: true,                    // Automatically reconnect if connection is lost
     waitForConnections: true,           // Wait for available connection if pool is full
     
     // Connection timeout settings
     connectTimeout: 60000,              // Connection timeout (60 seconds)
-    acquireTimeout: 60000,              // Acquire timeout (60 seconds)
     
     // Keep connections alive
     keepAliveInitialDelay: 0,           // Start keep-alive immediately

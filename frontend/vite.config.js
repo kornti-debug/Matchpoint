@@ -10,7 +10,7 @@ export default defineConfig({
     // IMPORTANT: Add the allowedHosts array
     allowedHosts: [
       '.fhstp.cc', // Allow all subdomains of fhstp.cc, this is generally safer than specific subdomains if it's dynamic
-      'cc241070-10734.node.fhstp.cc', // Also add the specific hostname from your error
+      'cc241070-10748.node.fhstp.cc', // Also add the specific hostname from your error
       // Add any other hostnames your frontend might be accessed from (e.g., your local machine's IP if you use it directly)
     ],
     // If you're running backend on a different domain/port, you might need proxy rules here,

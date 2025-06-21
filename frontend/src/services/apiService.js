@@ -14,7 +14,7 @@
  * Falls back to localhost:3000 for development
  * @type {string}
  */
-const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
+const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || "https://cc241070-10748.node.fhstp.cc:10748";
 
 // ============================================================================
 // UTILITY FUNCTIONS

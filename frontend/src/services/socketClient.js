@@ -16,7 +16,9 @@ import { io } from "socket.io-client";
  * Falls back to localhost:3000 for development
  * @type {string}
  */
-const SOCKET_SERVER_URL = import.meta.env.VITE_SOCKET_SERVER_URL || "http://localhost:3000";
+
+//const SOCKET_SERVER_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:3000";
+const SOCKET_SERVER_URL = "wss://cc241070-10748.node.fhstp.cc:10748";
 
 // ============================================================================
 // GLOBAL STATE

@@ -24,8 +24,11 @@ require('dotenv').config({
     path: process.env.NODE_ENV === 'production' ? '.env.production' : '.env'
 });
 
-// Server configuration
-const SERVER_PORT = process.env.PORT || 3000;
+// Server configuration 
+//const SERVER_PORT = process.env.PORT || 3000;
+
+// TODO: Remove this after testing
+const SERVER_PORT = 10748;
 const NODE_ENV = process.env.NODE_ENV || 'development';
 
 console.log('Environment:', NODE_ENV);
@@ -69,7 +72,7 @@ if (FRONTEND_URL_FROM_ENV && FRONTEND_URL_FROM_ENV !== "http://localhost:5173/")
 }
 
 const corsConfiguration = {
-    origin: ALLOWED_ORIGINS,
+    origin: ['https://cc241070-10749.node.fhstp.cc'],
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
     allowedHeaders: ['Content-Type', 'Authorization']
