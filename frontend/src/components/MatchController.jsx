@@ -1,4 +1,10 @@
-// components/MatchController.jsx
+/**
+ * @fileoverview Main match controller component for Matchpoint game show
+ * @author cc241070
+ * @version 1.0.0
+ * @description Handles real-time match state management, game flow, and UI rendering
+ */
+
 import { useEffect, useState, useCallback } from "react";
 import { useParams } from "react-router-dom";
 import * as apiService from "../services/apiService.js";
@@ -16,9 +22,63 @@ import GameView from "./GameView.jsx";
 import Scoreboard from "./Scoreboard.jsx";
 import FinalResults from "./FinalResults.jsx";
 
+// ============================================================================
+// CONSTANTS AND TYPES
+// ============================================================================
+
+/**
+ * @typedef {Object} MatchState
+ * @property {string} phase - Current match phase: 'loading', 'lobby', 'game', 'scoreboard', 'finished', 'error'
+ * @property {number} currentGame - Index of the current game (0-based)
+ * @property {number} totalGames - Total number of games in the match
+ * @property {Array} players - Array of player objects
+ * @property {Object} scores - Player scores object
+ * @property {Object} matchDetails - Match metadata
+ * @property {Object|null} gameData - Current game data
+ * @property {boolean} isLoading - Loading state flag
+ * @property {string} error - Error message if any
+ */
+
+/**
+ * @typedef {Object} MatchDetails
+ * @property {string} matchname - Display name of the match
+ * @property {string} room_code - Unique room code
+ * @property {number|null} id - Match database ID
+ * @property {number|null} host_id - Host user ID
+ * @property {string} status - Match status: 'waiting', 'in_progress', 'finished'
+ * @property {number} current_game_number - Current game index
+ * @property {Array} game_sequence - Array of game IDs
+ * @property {number|null} winner_id - Winner user ID
+ */
+
+// ============================================================================
+// COMPONENT DEFINITION
+// ============================================================================
+
+/**
+ * MatchController - Main component for managing match state and game flow
+ * 
+ * This component handles:
+ * - Real-time match state synchronization via WebSocket
+ * - Game phase transitions (lobby → game → scoreboard → finished)
+ * - Player management and score tracking
+ * - Host controls for match progression
+ * 
+ * @param {Object} props - Component props
+ * @param {boolean} props.isHost - Whether the current user is the match host
+ * @returns {JSX.Element} The rendered match interface
+ */
 function MatchController({ isHost }) {
     const {roomCode} = useParams();
 
+    // ============================================================================
+    // STATE MANAGEMENT
+    // ============================================================================
+
+    /**
+     * Main match state containing all match-related data
+     * @type {[MatchState, Function]}
+     */
     const [matchState, setMatchState] = useState({
         phase: 'loading',
         currentGame: 0,
@@ -40,10 +100,29 @@ function MatchController({ isHost }) {
         error: ''
     });
 
+    /**
+     * Controls whether the scoreboard is being reviewed (host-only feature)
+     * @type {[boolean, Function]}
+     */
     const [isReviewingScoreboard, setIsReviewingScoreboard] = useState(false);
+    /**
+     * Force flag to show scoreboard (debug/testing feature)
+     * @type {[boolean, Function]}
+     */
     const [forceShowScoreboard, setForceShowScoreboard] = useState(false);
 
-    // Function to fetch match details from the API service
+    // ============================================================================
+    // CORE FUNCTIONS
+    // ============================================================================
+
+    /**
+     * Fetches and updates match details from the API
+     * Handles phase transitions based on match status and game data
+     * 
+     * @async
+     * @function fetchMatchDetails
+     * @returns {Promise<void>}
+     */
     const fetchMatchDetails = useCallback(async () => {
         setMatchState(prev => ({ ...prev, isLoading: true, error: '' }));
         try {
@@ -120,6 +199,11 @@ function MatchController({ isHost }) {
 
 
     // --- WebSocket Integration useEffect ---
+    /**
+     * Handles incoming WebSocket messages and triggers match data refresh
+     * 
+     * @param {Object} message - WebSocket message object
+     */
     const handleSocketIoMessage = useCallback((message) => {
         console.log(`[MatchController] handleSocketIoMessage: WebSocket Message Received. Type: ${message?.type || 'Unknown'}. Full message:`, message);
         // Any match-related update from WebSocket triggers a full re-fetch to re-sync UI.
@@ -151,6 +235,14 @@ function MatchController({ isHost }) {
     // These functions initiate API calls. The backend will then broadcast via WebSocket.
     // The `handleSocketIoMessage` will then trigger `fetchMatchDetails` to update the UI.
 
+    /**
+     * Starts the match and transitions from lobby to first game
+     * Validates match state before starting
+     * 
+     * @async
+     * @function startMatch
+     * @returns {Promise<void>}
+     */
     const startMatch = async () => {
         // Ensure phase and status are correct for starting
         if (matchState.phase !== 'lobby' || matchState.matchDetails.status !== 'waiting') {
@@ -181,7 +273,17 @@ function MatchController({ isHost }) {
     };
 
 
-    const submitGameResults = async (winners, pointsToAward) => { // 'pointsToAward' is the value sent from GameView (e.g., currentGameIndex + 1)
+    /**
+     * Submits game results and awards points to winners
+     * Handles transition to scoreboard or next game
+     * 
+     * @async
+     * @function submitGameResults
+     * @param {Array} winners - Array of winner user IDs
+     * @param {number} pointsToAward - Points to award for this game
+     * @returns {Promise<void>}
+     */
+    const submitGameResults = async (winners, pointsToAward) => {
         if (!Array.isArray(winners) || winners.length === 0) {
             console.error("MatchController: Submit Game Results - Invalid winners array.");
             return;
@@ -196,35 +298,40 @@ function MatchController({ isHost }) {
         try {
             await apiService.submitGameResults(
                 roomCode,
-                matchState.currentGame, // This is the 0-indexed game number (index)
+                matchState.currentGame,
                 winners,
-                pointsToAward // Use the explicitly determined points from GameView or here
+                pointsToAward
             );
-            console.log(`MatchController: API call to submit game results sent with ${pointsToAward} points. Expecting WebSocket sync for scores update.`);
+            console.log(`MatchController: Game results submitted with ${pointsToAward} points. Expecting WebSocket sync.`);
 
-            // --- CRITICAL FIX: Explicitly transition to scoreboard OR finish match locally ---
+            // Handle transition based on whether this is the last game
             if (isLastGame) {
-                console.log('MatchController: Last game submitted. Triggering nextGame API call to finish match.');
-                // This call will update backend status to 'finished', which will then trigger fetchMatchDetails to change phase to 'finished'
+                console.log('MatchController: Last game submitted. Triggering match finish.');
                 await apiService.nextGame(roomCode, matchState.totalGames, true);
-                setIsReviewingScoreboard(false); // Reset for final results
+                setIsReviewingScoreboard(false);
                 setForceShowScoreboard(false);
             } else {
-                setForceShowScoreboard(true); // Ensure scoreboard is shown after submit and persists until next game
+                setForceShowScoreboard(true);
                 setIsReviewingScoreboard(false);
-                // No need to set phase here; fetchMatchDetails will handle it
                 console.log('MatchController: Game results submitted. Will show scoreboard after backend update.');
             }
-            // --- END CRITICAL FIX ---
 
         } catch (error) {
-            console.error('MatchController: Failed to submit results (API error):', error);
+            console.error('MatchController: Failed to submit results:', error);
             setMatchState(prev => ({ ...prev, error: `Failed to submit results: ${error.message}` }));
         }
     };
 
+    /**
+     * Advances to the next game in the sequence or finishes the match
+     * Handles transition from scoreboard to next game or final results
+     * 
+     * @async
+     * @function nextGame
+     * @returns {Promise<void>}
+     */
     const nextGame = async () => {
-        const nextGameIndex = matchState.currentGame + 1; // This is the next 0-indexed game number (index)
+        const nextGameIndex = matchState.currentGame + 1;
         const totalGamesInSequence = matchState.matchDetails.game_sequence?.length || 0;
         const isMatchFinished = nextGameIndex >= totalGamesInSequence;
 
@@ -236,29 +343,40 @@ function MatchController({ isHost }) {
         try {
             await apiService.nextGame(
                 roomCode,
-                nextGameIndex, // Pass the 0-indexed index of the NEXT game
+                nextGameIndex,
                 isMatchFinished
             );
-            console.log('MatchController: API call to advance to next game sent. Expecting WebSocket sync for UI update.');
+            console.log('MatchController: API call to advance to next game sent. Expecting WebSocket sync.');
 
-            // After successful nextGame API call (which updates backend status),
-            // fetchMatchDetails (triggered by WebSocket) will handle the phase transition
-            // to 'game' for the next game, or 'finished' if it's the end.
-            setIsReviewingScoreboard(false); // Reset this flag as we are now moving past scoreboard review (to next game or final results)
-            setForceShowScoreboard(false); // Allow phase to move on from scoreboard
+            // Reset review flags as we move past scoreboard
+            setIsReviewingScoreboard(false);
+            setForceShowScoreboard(false);
         } catch (error) {
-            console.error('MatchController: Failed to load next game (API error):', error);
+            console.error('MatchController: Failed to load next game:', error);
             setMatchState(prev => ({ ...prev, error: `Failed to load next game: ${error.message}` }));
         }
     };
 
+    /**
+     * Returns to scoreboard for review (host-only feature)
+     * Allows host to review scores before proceeding to next game
+     * 
+     * @function backToScoreboard
+     */
     const backToScoreboard = () => {
-        // This is a local UI change for the host to review the scoreboard.
         setMatchState(prev => ({ ...prev, phase: 'scoreboard' }));
-        setIsReviewingScoreboard(true); // Set to true when entering scoreboard review
+        setIsReviewingScoreboard(true);
         console.log('MatchController: Returning to scoreboard for review (local UI).');
     };
 
+    /**
+     * Updates the match name via API call
+     * 
+     * @async
+     * @function updateMatchNameHandler
+     * @param {string} newMatchName - New name for the match
+     * @returns {Promise<void>}
+     */
     const updateMatchNameHandler = async (newMatchName) => {
         if (!matchState.matchDetails.id) {
             console.error("MatchController: Update Match Name - Match ID not available.");
@@ -268,18 +386,27 @@ function MatchController({ isHost }) {
             await apiService.updateMatchName(roomCode, newMatchName);
             console.log('MatchController: API call to update match name sent. Expecting WebSocket sync.');
         } catch (error) {
-            console.error('MatchController: Error updating match name (API error):', error);
+            console.error('MatchController: Error updating match name:', error);
             throw error;
         }
     };
 
+    /**
+     * Resumes the current game from scoreboard review
+     * Transitions back to game phase
+     * 
+     * @function resumeGame
+     */
     const resumeGame = () => {
         setMatchState(prev => ({ ...prev, phase: 'game' }));
         setIsReviewingScoreboard(false);
     };
 
-    // --- Conditional Rendering for different match phases/states ---
+    // ============================================================================
+    // RENDER LOGIC
+    // ============================================================================
 
+    // Loading state
     if (matchState.isLoading) {
         return (
             <div className="min-h-screen bg-gray-900 text-gray-100 flex items-center justify-center text-3xl font-bold">
@@ -288,6 +415,7 @@ function MatchController({ isHost }) {
         );
     }
 
+    // Error state
     if (matchState.error && matchState.phase !== 'error') {
         return (
             <div className="min-h-screen bg-gray-900 text-red-500 flex flex-col items-center justify-center text-xl p-4">
@@ -295,81 +423,72 @@ function MatchController({ isHost }) {
                 <p>{matchState.error}</p>
                 <button
                     onClick={fetchMatchDetails}
-                    className="mt-6 bg-red-700 hover:bg-red-800 text-white font-bold py-2 px-4 rounded-lg shadow-md transition duration-300"
+                    className="mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
                 >
-                    Try Again
+                    Retry
                 </button>
             </div>
         );
     }
 
-    return (
-        <div className="flex-grow flex items-center justify-center p-4">
-            {/* The small top-left debug header is now removed definitively */}
-
-            {matchState.phase === 'lobby' && (
-                isHost ?
-                    <HostLobby
-                        roomCode={roomCode}
-                        matchState={matchState}
-                        setMatchState={setMatchState}
-                        startMatch={startMatch}
-                        updateMatchName={updateMatchNameHandler}
-                    /> :
-                    <PlayerLobby
-                        roomCode={roomCode}
-                        matchState={matchState}
-                        setMatchState={setMatchState}
-                    />
-            )}
-
-            {matchState.phase === 'game' && matchState.gameData && (
-                <GameView
+    // Phase-based rendering
+    switch (matchState.phase) {
+        case 'lobby':
+            return isHost ? (
+                <HostLobby
                     roomCode={roomCode}
                     matchState={matchState}
                     setMatchState={setMatchState}
+                    startMatch={startMatch}
+                    updateMatchName={updateMatchNameHandler}
+                />
+            ) : (
+                <PlayerLobby
+                    roomCode={roomCode}
+                    matchState={matchState}
+                    setMatchState={setMatchState}
+                />
+            );
+
+        case 'game':
+            return (
+                <GameView
+                    roomCode={roomCode}
+                    matchState={matchState}
                     isHost={isHost}
                     submitGameResults={submitGameResults}
                     backToScoreboard={backToScoreboard}
                 />
-            )}
+            );
 
-            {/* Render Scoreboard explicitly when phase is 'scoreboard' */}
-            {matchState.phase === 'scoreboard' && (
+        case 'scoreboard':
+            return (
                 <Scoreboard
                     roomCode={roomCode}
                     matchState={matchState}
-                    setMatchState={setMatchState}
                     isHost={isHost}
                     nextGame={nextGame}
                     isReviewingScoreboard={isReviewingScoreboard}
                     resumeGame={resumeGame}
                 />
-            )}
+            );
 
-            {matchState.phase === 'finished' && (
+        case 'finished':
+            return (
                 <FinalResults
                     roomCode={roomCode}
                     matchState={matchState}
-                    setMatchState={setMatchState}
                     isHost={isHost}
                 />
-            )}
+            );
 
-            {matchState.phase === 'error' && (
-                <div className="min-h-screen bg-gray-900 text-red-500 flex flex-col items-center justify-center text-xl p-4">
-                    <p className="mb-4 font-bold">An error occurred during match initialization or phase transition.</p>
-                    <p>{matchState.error}</p>
-                    <button
-                        onClick={fetchMatchDetails}
-                        className="mt-6 bg-red-700 hover:bg-red-800 text-white font-bold py-2 px-4 rounded-lg shadow-md transition duration-300"
-                    >
-                        Try Again
-                    </button>
+        default:
+            return (
+                <div className="min-h-screen bg-gray-900 text-red-500 flex items-center justify-center text-xl">
+                    Unknown match phase: {matchState.phase}
                 </div>
-            )}
-        </div>
-    );
+            );
+    }
 }
 
 export default MatchController;

@@ -2,7 +2,7 @@ import {useState} from "react";
 import {useNavigate} from "react-router-dom";
 import {Link} from "react-router-dom";
 import * as apiService from "../services/apiService.js";
-import Logo from '../assets/logo2.svg'
+import Logo from '../assets/logo4.svg'
 
 
 function HomePage(){
@@ -35,7 +35,7 @@ function HomePage(){
                 <img
                     src={Logo}
                     alt="Logo"
-                    className="mb-16 w-48 h-auto"
+                    className="mb-16 w-32 md:w-48 h-auto"
                 />
 
                 <div className="bg-gray-800 rounded-lg shadow-xl p-8">

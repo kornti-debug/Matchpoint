@@ -212,10 +212,10 @@ function Dashboard() {
                                 type="text"
                                 id="roomCode"
                                 value={roomCodeInput}
-                                onChange={(e) => setRoomCodeInput(e.target.value)}
+                                onChange={(e) => setRoomCodeInput(e.target.value.toUpperCase())}
                                 className="w-full p-3 rounded-lg bg-gray-700 text-white placeholder-gray-400 border border-gray-600 focus:outline-none focus:ring-2 focus:ring-yellow-500"
-                                placeholder="e.g., 5489"
-                                maxLength="6"
+                                placeholder="e.g., ABCD"
+                                maxLength="4"
                                 required
                             />
                         </div>

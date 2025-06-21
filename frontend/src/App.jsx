@@ -9,7 +9,7 @@ import MatchController from "./components/MatchController.jsx";
 import GamesPage from "./components/GamesPage.jsx";
 import GameDetailPage from "./components/GameDetailPage.jsx";
 import GameFormPage from "./components/GameFormPage.jsx";
-import Wordmark from "./assets/wordmarkLogo.svg";
+import Wordmark from "./assets/wordmark2.svg";
 import BurgerMenu from "./components/BurgerMenu.jsx";
 import {useEffect, useState} from "react";
 
@@ -37,11 +37,11 @@ function App() {
                 </header>
 
                 <main className="flex-grow flex items-center justify-center p-8">
-                    <div className="bg-gray-900 rounded-lg shadow-lg sm:p-8 m-auto w-full sm:max-w-6xl min-w-[16rem] justify-center">
+                    <div className="bg-gray-900 rounded-lg shadow-lg sm:p-8 m-auto w-full sm:max-w-6xl min-w-[16rem] flex justify-center">
                     <Routes>
                         <Route path='/' element={<HomePage />}/>
                         <Route path='/dashboard' element={<ProtectedRoute><Dashboard /></ProtectedRoute>}/>
-                        <Route path='/dashboard/games' element={<ProtectedRoute><GamesPage /></ProtectedRoute>}/> {/* <--- NEW ROUTE */}
+                        <Route path='/dashboard/games' element={<ProtectedRoute><GamesPage /></ProtectedRoute>}/>
                         <Route path='/dashboard/games/:gameId' element={<ProtectedRoute><GameDetailPage /></ProtectedRoute>}/>
                         <Route path="/dashboard/games/new" element={<ProtectedRoute><GameFormPage type="new" /></ProtectedRoute>} />
                         <Route path="/dashboard/games/:gameId/edit" element={<ProtectedRoute><GameFormPage type="edit" /></ProtectedRoute>} />
