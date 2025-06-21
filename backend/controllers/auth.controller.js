@@ -47,7 +47,7 @@ async function processRegistration(req, res) {
 
         // Create token immediately without authentication check
         const accessToken = jwt.sign({
-            id: newUser.id, // Assuming createUser returns the new user with ID
+            id: newUser.insertId,
             username: req.body.username,
         }, ACCESS_TOKEN_SECRET, { expiresIn: '1h' });
 
@@ -55,7 +55,7 @@ async function processRegistration(req, res) {
             message: 'Registration successful',
             token: accessToken,
             user: {
-                id: newUser.id,
+                id: newUser.insertId,
                 username: req.body.username
             }
         });

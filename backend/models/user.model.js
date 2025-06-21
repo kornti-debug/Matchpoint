@@ -1,69 +1,39 @@
+/**
+ * @fileoverview User model for Matchpoint game show platform
+ * @author cc241070
+ * @version 1.0.0
+ * @description Database operations for user authentication and profile management
+ */
+
 // Import constants and modules
 const { SALT_ROUNDS } = require("../lib/constants"); // Number of salt rounds for bcrypt
 const bcrypt = require("bcrypt"); // Library for password hashing
 const db = require("../services/database").config; // Import database connection
 
-// Retrieve all users from the database
-const getUsers = () => new Promise((resolve, reject) => {
-    db.query("SELECT * FROM users", function (err, users) {
-        if (err) {
-            console.error(err);
-            reject(err); // Reject if an error occurs
-        } else {
-            resolve(users); // Resolve with list of users
-        }
-    });
-});
+// ============================================================================
+// USER AUTHENTICATION
+// ============================================================================
 
-// Retrieve a single user by their ID
-const getUserById = (userId) => new Promise((resolve, reject) => {
-    db.query('SELECT * FROM users WHERE id = ?', [parseInt(userId)], function (err, user) {
-        if (err || (user || []).length === 0) {
-            reject(err); // Reject if an error occurs or user not found
-        } else {
-            resolve(user[0]); // Resolve with the found user
-        }
-    });
-});
-
-// Update user data in the database (with optional password update)
-const updateUser = async (userData) => {
-    // Base SQL query and parameters
-    let sql = "UPDATE users SET name = ?, surname = ?, hero = ?, email = ?, info = ?";
-    const params = [
-        userData.name,
-        userData.surname,
-        userData.hero,
-        userData.email,
-        userData.info
-    ];
-
-    // If a new password was provided, hash it and add to the query
-    if (userData.password !== null && userData.password !== undefined && userData.password !== "") {
-        const hashedPassword = await bcrypt.hash(userData.password, SALT_ROUNDS);
-        sql += ", password = ?";
-        params.push(hashedPassword);
-    }
-
-    // Add condition for the specific user ID
-    sql += " WHERE id = ?";
-    params.push(parseInt(userData.id));
-
-    // Execute the update query
-    return new Promise((resolve, reject) => {
-        db.query(sql, params, function (err) {
-            if (err) {
-                console.log(err);
-                reject(err); // Reject on error
-            }
-            resolve(userData); // Resolve with the updated user data
-        });
-    });
-};
-
-// Create a new user in the database
-let createUser = (userData) => new Promise((resolve, reject) => {
-    console.log(userData)
+/**
+ * Creates a new user account with hashed password
+ * Used for user registration during signup process
+ * 
+ * @async
+ * @param {Object} userData - User registration data
+ * @param {string} userData.username - Unique username for the account
+ * @param {string} userData.password - Plain text password to hash
+ * @returns {Promise<Object>} Database insert result with user ID
+ * 
+ * @example
+ * const result = await createUser({ username: 'john_doe', password: 'secure123' });
+ * // Returns: { insertId: 123, affectedRows: 1 }
+ * 
+ * @throws {Error} Database connection or query errors
+ * @throws {Error} Duplicate username constraint violations
+ */
+const createUser = (userData) => new Promise((resolve, reject) => {
+    console.log('Creating user:', userData.username);
+    
     // Prepare SQL with escaped values to prevent SQL injection
     let sql = "INSERT INTO users (username, password) VALUES (" +
         db.escape(userData.username) + ", " +
@@ -72,30 +42,71 @@ let createUser = (userData) => new Promise((resolve, reject) => {
     // Execute insert query
     db.query(sql, function (err, result) {
         if (err) {
-            reject(err); // Reject on error
+            reject(err);
         } else {
-            resolve(result); // Resolve with insert result (e.g. insertId)
+            resolve(result);
         }
     });
 });
 
-// Delete a user from the database by ID
-let deleteUser = (id) => new Promise((resolve, reject) => {
-    const sql = "DELETE FROM users WHERE id = ?";
-    db.query(sql, [parseInt(id)], function (err, result) {
+// ============================================================================
+// USER RETRIEVAL
+// ============================================================================
+
+/**
+ * Retrieves all users from the database
+ * Used for authentication to check credentials and username uniqueness
+ * 
+ * @async
+ * @returns {Promise<Array>} Array of all user objects
+ * 
+ * @example
+ * const users = await getUsers();
+ * // Returns: [{ id: 1, username: 'john_doe', ... }, { id: 2, username: 'jane_doe', ... }]
+ * 
+ * @throws {Error} Database connection or query errors
+ */
+const getUsers = () => new Promise((resolve, reject) => {
+    db.query("SELECT * FROM users", function (err, users) {
         if (err) {
-            reject(err); // Reject on error
+            console.error(err);
+            reject(err);
         } else {
-            resolve(result); // Resolve with result (e.g. affectedRows)
+            resolve(users);
         }
     });
 });
 
-// Export all functions so they can be used in other parts of the application
+/**
+ * Retrieves a user by their database ID
+ * Used to fetch user details for match operations
+ * 
+ * @async
+ * @param {number} userId - Database ID of the user to fetch
+ * @returns {Promise<Object|null>} User object or null if not found
+ * 
+ * @example
+ * const user = await getUserById(123);
+ * // Returns: { id: 123, username: 'john_doe', ... }
+ * 
+ * @throws {Error} Database connection or query errors
+ */
+const getUserById = (userId) => new Promise((resolve, reject) => {
+    db.query('SELECT * FROM users WHERE id = ?', [parseInt(userId)], function (err, user) {
+        if (err || (user || []).length === 0) {
+            reject(err);
+        } else {
+            resolve(user[0]);
+        }
+    });
+});
+
+// ============================================================================
+// MODULE EXPORTS
+// ============================================================================
+
 module.exports = {
-    getUsers,
-    getUserById,
     createUser,
-    deleteUser,
-    updateUser
+    getUsers,
+    getUserById
 };

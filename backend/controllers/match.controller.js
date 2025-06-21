@@ -1,17 +1,47 @@
+/**
+ * @fileoverview Match controller for Matchpoint game show platform
+ * @author cc241070
+ * @version 1.0.0
+ * @description Handles match creation, joining, game flow, and real-time updates
+ */
+
 // backend/controllers/match.controller.js
 const matchModel = require('../models/match.model');
 const userModel = require('../models/user.model'); // Still needed to fetch username for joinMatch
 
+// ============================================================================
+// UTILITY FUNCTIONS
+// ============================================================================
+
 /**
- * Helper function to access the broadcast function safely from app.locals.
+ * Safely retrieves the broadcast function from app.locals
+ * Used to send real-time updates to connected clients
+ * 
+ * @param {Object} req - Express request object
+ * @returns {Function} Broadcast function for Socket.IO room communication
  */
 const getBroadcastToRoom = (req) => {
     // Access the broadcastToRoom function through app.locals.socketManager
     return req.app.locals.socketManager.broadcastToRoom;
 };
 
+// ============================================================================
+// MATCH MANAGEMENT FUNCTIONS
+// ============================================================================
+
 /**
- * Handles the creation of a new match with a specified game sequence.
+ * Creates a new match with specified games and host
+ * Generates a unique room code and initializes match state
+ * 
+ * @async
+ * @param {Object} req - Express request object
+ * @param {Object} req.user - Authenticated user object
+ * @param {number} req.user.id - Host user ID
+ * @param {Object} req.body - Request body
+ * @param {string} req.body.matchName - Display name for the match
+ * @param {Array<number>} req.body.gameSequence - Array of game IDs to play
+ * @param {Object} res - Express response object
+ * @returns {Promise<void>}
  */
 const createMatch = async (req, res) => {
     try {
@@ -42,12 +72,20 @@ const createMatch = async (req, res) => {
 };
 
 /**
- * Retrieves full match details for a given room code.
+ * Retrieves complete match details including players and scores
+ * Used by both host and players to get current match state
+ * 
+ * @async
+ * @param {Object} req - Express request object
+ * @param {Object} req.params - URL parameters
+ * @param {string} req.params.roomCode - Unique room code
+ * @param {Object} res - Express response object
+ * @returns {Promise<void>}
  */
 const getMatchDetails = async (req, res) => {
     try {
-        const { roomCode: rawRoomCode } = req.params;
-        const roomCode = rawRoomCode.toLowerCase();
+        const {roomCode} = req.params;
+
         const match = await matchModel.getMatchByRoomCode(roomCode);
         if (!match) {
             return res.status(404).json({ success: false, error: 'Match not found.' });
@@ -61,17 +99,26 @@ const getMatchDetails = async (req, res) => {
 };
 
 /**
- * Updates the name of a match.
+ * Updates the display name of a match
+ * Only the host can modify the match name
+ * 
+ * @async
+ * @param {Object} req - Express request object
+ * @param {Object} req.user - Authenticated user object
+ * @param {number} req.user.id - User ID for authorization
+ * @param {Object} req.params - URL parameters
+ * @param {string} req.params.roomCode - Unique room code
+ * @param {Object} req.body - Request body
+ * @param {string} req.body.matchName - New match name
+ * @param {Object} res - Express response object
+ * @returns {Promise<void>}
  */
 const updateMatchName = async (req, res) => {
     try {
-        const { roomCode: rawRoomCode } = req.params;
-        const roomCode = rawRoomCode.toLowerCase();
+        const  {roomCode} = req.params;
         const { matchName } = req.body;
         const userId = req.user.id;
         const broadcastToRoom = getBroadcastToRoom(req);
-
-        console.log(`Backend: updateMatchName received for roomCode: ${roomCode}, newName: ${matchName}, by userId: ${userId}`);
 
         const match = await matchModel.getMatchByRoomCode(roomCode);
         if (!match) {
@@ -101,20 +148,27 @@ const updateMatchName = async (req, res) => {
 };
 
 /**
- * Handles a user joining an existing match.
+ * Handles a user joining an existing match
+ * Validates match status and broadcasts player updates
+ * 
+ * @async
+ * @param {Object} req - Express request object
+ * @param {Object} req.user - Authenticated user object
+ * @param {number} req.user.id - User ID joining the match
+ * @param {Object} req.params - URL parameters
+ * @param {string} req.params.roomCode - Unique room code
+ * @param {Object} res - Express response object
+ * @returns {Promise<void>}
  */
 const joinMatch = async (req, res) => {
     try {
         const userId = req.user.id;
-        const { roomCode: rawRoomCode } = req.params;
-        const roomCode = rawRoomCode.toLowerCase();
-        const broadcastToRoom = getBroadcastToRoom(req);
+        const {roomCode} = req.params;
 
-        console.log(`Backend: joinMatch request for roomCode: ${roomCode}, userId: ${userId}`);
+        const broadcastToRoom = getBroadcastToRoom(req);
 
         const match = await matchModel.getMatchByRoomCode(roomCode);
         if (!match) {
-            console.warn(`Backend: joinMatch - Match not found for roomCode: ${roomCode}`);
             return res.status(404).json({ error: 'Match not found.' });
         }
 
@@ -161,12 +215,22 @@ const joinMatch = async (req, res) => {
 };
 
 /**
- * Handles starting a match, updating its status to 'in_progress' and setting initial game index.
+ * Starts a match and transitions from waiting to in_progress
+ * Only the host can start the match
+ * 
+ * @async
+ * @param {Object} req - Express request object
+ * @param {Object} req.user - Authenticated user object
+ * @param {number} req.user.id - Host user ID for authorization
+ * @param {Object} req.params - URL parameters
+ * @param {string} req.params.roomCode - Unique room code
+ * @param {Object} res - Express response object
+ * @returns {Promise<void>}
  */
 const startMatch = async (req, res) => {
     try {
-        const { roomCode: rawRoomCode } = req.params;
-        const roomCode = rawRoomCode.toLowerCase();
+        const {roomCode} = req.params;
+
         const broadcastToRoom = getBroadcastToRoom(req);
         const userId = req.user.id; // Host ID for authorization
 
@@ -238,8 +302,7 @@ const startMatch = async (req, res) => {
  */
 const submitGameResults = async (req, res) => {
     try {
-        const { roomCode: rawRoomCode } = req.params;
-        const roomCode = rawRoomCode.toLowerCase();
+        const {roomCode} = req.params;
         const { gameNumber, winners, points } = req.body; // Use points as in your code
         const broadcastToRoom = getBroadcastToRoom(req);
         const userId = req.user.id; // Host ID for authorization
@@ -304,9 +367,9 @@ const submitGameResults = async (req, res) => {
  */
 const nextGame = async (req, res) => {
     try {
-        const { roomCode: rawRoomCode } = req.params;
-        const roomCode = rawRoomCode.toLowerCase();
-        const { newGameNumber, isMatchFinished } = req.body;
+        const {roomCode} = req.params;
+        console.log('req.body', req.body);
+        let { newGameNumber, isMatchFinished } = req.body;
         const broadcastToRoom = getBroadcastToRoom(req);
         const userId = req.user.id; // Host ID for authorization
 

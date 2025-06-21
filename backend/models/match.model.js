@@ -1,57 +1,116 @@
-// models/match.model.js
+/**
+ * @fileoverview Match model for Matchpoint game show platform
+ * @author cc241070
+ * @version 1.0.0
+ * @description Database operations for match management, player tracking, and game flow
+ */
+
 const db = require('../services/database').config;
 
-// Helper function to generate room code
-const generateRoomCode = () => {
-    return Math.random().toString(36).substring(2, 8).toUpperCase();
-};
+// ============================================================================
+// UTILITY FUNCTIONS
+// ============================================================================
 
 /**
- * Creates a new match in the database with a specified game sequence.
- * @param {string} matchName - Name of the match.
- * @param {number} hostId - ID of the host user.
- * @param {Array<number>} [gameSequence=[]] - Optional array of game IDs for the match sequence.
+ * Generates a unique 4-letter room code for match identification
+ * Uses random letter generation with retry logic for uniqueness
+ * 
+ * @returns {string} A 4-letter room code (e.g., 'ABCD', 'XYZW')
+ * 
+ * @example
+ * const roomCode = generateRoomCode(); // Returns: 'ABCD'
+ */
+const generateRoomCode = () => {
+    const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    let code = '';
+    for (let i = 0; i < 4; i++) {
+        code += letters.charAt(Math.floor(Math.random() * letters.length));
+    }
+    return code;
+};
+
+// ============================================================================
+// MATCH CREATION AND RETRIEVAL
+// ============================================================================
+
+/**
+ * Creates a new match in the database with automatic room code generation
+ * Handles duplicate room code conflicts with recursive retry logic
+ * 
+ * @async
+ * @param {string} matchName - Display name for the match
+ * @param {number} hostId - User ID of the match host
+ * @param {Array<number>} [gameSequence=[]] - Array of game IDs to play in order
+ * @returns {Promise<Object>} Created match object with room code and metadata
+ * 
+ * @example
+ * const match = await createMatch('Friday Night Games', 123, [1, 3, 5]);
+ * // Returns: { id: 456, room_code: 7890, status: 'waiting', ... }
+ * 
+ * @throws {Error} Database connection or query errors
  */
 const createMatch = (matchName, hostId, gameSequence = []) => new Promise((resolve, reject) => {
-    const roomCode = generateRoomCode();
-    // CRITICAL: Ensure gameSequence is stored as a JSON string for the DB.
-    // The DB driver will parse it back when retrieved if the column is JSON type.
-    const gameSequenceJson = gameSequence.length > 0 ? JSON.stringify(gameSequence) : null;
+    const attemptInsert = () => {
+        const roomCode = generateRoomCode();
+        // Store game sequence as JSON string for database compatibility
+        const gameSequenceJson = gameSequence.length > 0 ? JSON.stringify(gameSequence) : null;
 
-    const sql = `
-        INSERT INTO matches (host_id, room_code, status, matchname, current_game_number, game_sequence)
-        VALUES (?, ?, ?, ?, ?, ?)
-    `;
-    const params = [
-        hostId,
-        roomCode,
-        'waiting',
-        matchName,
-        0, // Start at game index 0 (first game in sequence)
-        gameSequenceJson
-    ];
+        const sql = `
+            INSERT INTO matches (host_id, room_code, status, matchname, current_game_number, game_sequence)
+            VALUES (?, ?, ?, ?, ?, ?)
+        `;
+        const params = [
+            hostId,
+            roomCode,
+            'waiting',
+            matchName,
+            0, // Start at game index 0 (first game in sequence)
+            gameSequenceJson
+        ];
 
-    db.query(sql, params, function (err, result) {
-        if (err) {
-            console.error('Database error creating match:', err);
-            reject(err);
-        } else {
-            resolve({
-                id: result.insertId,
-                room_code: roomCode,
-                status: 'waiting',
-                current_game_number: 0,
-                matchname: matchName,
-                game_sequence: gameSequence // Return the original array for consistency
-            });
-        }
-    });
+        db.query(sql, params, function (err, result) {
+            if (!err) {
+                resolve({
+                    id: result.insertId,
+                    room_code: roomCode,
+                    status: 'waiting',
+                    current_game_number: 0,
+                    matchname: matchName,
+                    game_sequence: gameSequence // Return original array for consistency
+                });
+            } else if (err.code === 'ER_DUP_ENTRY') {
+                console.error('Room code already exists. Retrying...');
+                attemptInsert(); // Recursive retry for duplicate room codes
+            } else {
+                console.error('Database error creating match:', err);
+                reject(err);
+            }
+        });
+    };
+    attemptInsert();
 });
 
 /**
- * Retrieves full match details by room code, including players, scores, and game sequence.
+ * Retrieves complete match details by room code including players and scores
+ * Fetches match metadata, player list, and current scores in a single operation
+ * 
+ * @async
+ * @param {string} roomCode - The unique room code to search for
+ * @returns {Promise<Object>} Complete match object with players and scores
+ * 
+ * @example
+ * const match = await getMatchByRoomCode('ABCD');
+ * // Returns: {
+ * //   id: 456, host_id: 123, room_code: 'ABCD', status: 'waiting',
+ * //   players: [{ id: 1, user_id: 123, name: 'John', total_score: 0 }],
+ * //   scores: { 1: 0 }, game_sequence: [1, 3, 5]
+ * // }
+ * 
+ * @throws {Error} 'Match not found' if room code doesn't exist
+ * @throws {Error} Database connection or query errors
  */
 const getMatchByRoomCode = (roomCode) => new Promise((resolve, reject) => {
+    // Fetch match metadata
     let sql = "SELECT id, host_id, room_code, status, current_game_number, winner_id, matchname, game_sequence FROM matches WHERE room_code = ?";
 
     db.query(sql, [roomCode], function (err, result) {
@@ -61,53 +120,69 @@ const getMatchByRoomCode = (roomCode) => new Promise((resolve, reject) => {
         } else if (result.length === 0) {
             console.log('No match found for room code:', roomCode);
             return reject(new Error('Match not found'));
-        } else {
-            console.log('Match found, raw data from DB:', result[0]);
-            const match = result[0];
-
-            // CRITICAL: Rely on the database driver to parse the JSON column type.
-            // If the column type is JSON, `match.game_sequence` will already be a JS array/object.
-            // If it's `null` from DB, it means no sequence was set, so default to empty array.
-            const parsedGameSequence = Array.isArray(match.game_sequence) ? match.game_sequence : [];
-
-            const playersSql = `
-                SELECT mp.id AS id, mp.user_id, u.username AS name, mp.total_score
-                FROM match_players AS mp
-                JOIN users AS u ON mp.user_id = u.id
-                WHERE mp.match_id = ?
-                ORDER BY mp.joined_at ASC`; // Order by joined_at as in your commit
-
-            db.query(playersSql, [match.id], (playersErr, playersResult) => {
-                if (playersErr) {
-                    console.error('Database error fetching players for match:', playersErr);
-                    return reject(playersErr);
-                }
-
-                const players = playersResult;
-                const scores = {};
-                players.forEach(player => {
-                    scores[player.id] = player.total_score;
-                });
-
-                resolve({
-                    id: match.id,
-                    host_id: match.host_id,
-                    room_code: match.room_code,
-                    status: match.status,
-                    current_game_number: match.current_game_number,
-                    matchname: match.matchname,
-                    winner_id: match.winner_id,
-                    game_sequence: parsedGameSequence, // Use the correctly obtained array
-                    players: players,
-                    scores: scores
-                });
-            });
         }
+
+        console.log('Match found, raw data from DB:', result[0]);
+        const match = result[0];
+
+        // Parse game sequence from JSON or default to empty array
+        const parsedGameSequence = Array.isArray(match.game_sequence) ? match.game_sequence : [];
+
+        // Fetch players and their scores
+        const playersSql = `
+            SELECT mp.id AS id, mp.user_id, u.username AS name, mp.total_score
+            FROM match_players AS mp
+            JOIN users AS u ON mp.user_id = u.id
+            WHERE mp.match_id = ?
+            ORDER BY mp.joined_at ASC
+        `;
+
+        db.query(playersSql, [match.id], (playersErr, playersResult) => {
+            if (playersErr) {
+                console.error('Database error fetching players for match:', playersErr);
+                return reject(playersErr);
+            }
+
+            const players = playersResult;
+            const scores = {};
+            players.forEach(player => {
+                scores[player.id] = player.total_score;
+            });
+
+            resolve({
+                id: match.id,
+                host_id: match.host_id,
+                room_code: match.room_code,
+                status: match.status,
+                current_game_number: match.current_game_number,
+                matchname: match.matchname,
+                winner_id: match.winner_id,
+                game_sequence: parsedGameSequence,
+                players: players,
+                scores: scores
+            });
+        });
     });
 });
 
+// ============================================================================
+// MATCH UPDATES
+// ============================================================================
+
 /**
- * Updates the name of a match.
+ * Updates the display name of a match
+ * 
+ * @async
+ * @param {string} roomCode - Room code of the match to update
+ * @param {string} matchName - New display name for the match
+ * @returns {Promise<Object>} Update result with success status
+ * 
+ * @example
+ * await updateMatchName('1234', 'New Match Name');
+ * // Returns: { success: true, affectedRows: 1 }
+ * 
+ * @throws {Error} 'Match not found or no change' if room code doesn't exist
+ * @throws {Error} Database connection or query errors
  */
 const updateMatchName = (roomCode, matchName) => new Promise((resolve, reject) => {
     const sql = "UPDATE matches SET matchname = ? WHERE room_code = ?";
@@ -125,10 +200,27 @@ const updateMatchName = (roomCode, matchName) => new Promise((resolve, reject) =
     });
 });
 
+// ============================================================================
+// PLAYER MANAGEMENT
+// ============================================================================
+
 /**
- * Adds a user as a player to a specific match in the match_players table.
+ * Adds a user as a player to a specific match
+ * Prevents duplicate player entries and initializes score to 0
+ * 
+ * @async
+ * @param {number} matchId - Database ID of the match
+ * @param {number} userId - User ID to add as player
+ * @returns {Promise<Object>} Player entry object with match and user IDs
+ * 
+ * @example
+ * const player = await joinMatch(456, 123);
+ * // Returns: { id: 789, match_id: 456, user_id: 123, total_score: 0 }
+ * 
+ * @throws {Error} Database connection or query errors
  */
 const joinMatch = (matchId, userId) => new Promise((resolve, reject) => {
+    // Check if player already exists
     const checkSql = "SELECT id, match_id, user_id, total_score FROM match_players WHERE match_id = ? AND user_id = ?";
     db.query(checkSql, [matchId, userId], (err, result) => {
         if (err) {
@@ -140,6 +232,7 @@ const joinMatch = (matchId, userId) => new Promise((resolve, reject) => {
             return resolve(result[0]);
         }
 
+        // Insert new player with initial score of 0
         const insertSql = "INSERT INTO match_players (match_id, user_id, total_score, joined_at) VALUES (?, ?, ?, NOW())";
         db.query(insertSql, [matchId, userId, 0], (err, result) => {
             if (err) {
@@ -157,10 +250,23 @@ const joinMatch = (matchId, userId) => new Promise((resolve, reject) => {
     });
 });
 
+// ============================================================================
+// GAME DATA RETRIEVAL
+// ============================================================================
+
 /**
- * Fetches game details from the 'games' table by its primary ID.
- * @param {number} gameId - The primary ID of the game to fetch.
- * @returns {Promise<Object>} Game object containing id, title, description, game_number, points_value.
+ * Fetches game details from the games table by primary ID
+ * Used to get game information for the current match phase
+ * 
+ * @async
+ * @param {number} gameId - Primary ID of the game to fetch
+ * @returns {Promise<Object|null>} Game object or null if not found
+ * 
+ * @example
+ * const game = await getGameDetailsById(5);
+ * // Returns: { id: 5, title: 'Quiz Game', description: '...', game_number: 1, points_value: 10 }
+ * 
+ * @throws {Error} Database connection or query errors
  */
 const getGameDetailsById = (gameId) => new Promise((resolve, reject) => {
     console.log(`Model: Fetching game details for ID: ${gameId}`);
@@ -175,7 +281,7 @@ const getGameDetailsById = (gameId) => new Promise((resolve, reject) => {
             reject(err);
         } else if (result.length === 0) {
             console.warn(`No game found for ID: ${gameId}`);
-            resolve(null); // Resolve with null, allowing controller to return 404/handle 'not found'
+            resolve(null); // Resolve with null for not found
         } else {
             console.log(`Model: Game with ID ${gameId} found:`, result[0]);
             resolve(result[0]);
@@ -183,11 +289,28 @@ const getGameDetailsById = (gameId) => new Promise((resolve, reject) => {
     });
 });
 
+// ============================================================================
+// SCORE MANAGEMENT
+// ============================================================================
+
 /**
- * Updates scores for multiple players in a specific match.
- * @param {number} matchId - The ID of the match.
- * @param {Array<Object>} playerUpdates - Array of { match_player_id, points_awarded }.
- * @returns {Promise<void>} A promise that resolves when all updates are attempted.
+ * Updates scores for multiple players in a specific match
+ * Handles batch score updates for game completion
+ * 
+ * @async
+ * @param {number} matchId - Database ID of the match
+ * @param {Array<Object>} playerUpdates - Array of score update objects
+ * @param {number} playerUpdates[].match_player_id - Player's match entry ID
+ * @param {number} playerUpdates[].points_awarded - Points to add to player's score
+ * @returns {Promise<void>} Resolves when all updates are completed
+ * 
+ * @example
+ * await updatePlayerScores(456, [
+ *   { match_player_id: 1, points_awarded: 10 },
+ *   { match_player_id: 2, points_awarded: 5 }
+ * ]);
+ * 
+ * @throws {Error} Database connection or query errors
  */
 const updatePlayerScores = (matchId, playerUpdates) => new Promise((resolve, reject) => {
     console.log(`Model: Updating scores for match ${matchId} for players:`, playerUpdates);
@@ -226,15 +349,33 @@ const updatePlayerScores = (matchId, playerUpdates) => new Promise((resolve, rej
 });
 
 /**
- * Updates the status and current game number (index in sequence) of a match.
- * @param {number} matchId - The ID of the match to update.
- * @param {string} newStatus - The new status of the match ('in_progress', 'finished', etc.).
- * @param {number} newGameIndex - The current game index in the sequence (0-based).
- * @param {number | null} [winnerId=null] - Optional ID of the overall match winner.
- * @returns {Promise<Object>} A promise that resolves with the database result.
+ * Updates the status and current game number of a match
+ * Handles match progression from waiting → in_progress → finished
+ * Optionally sets the winner when match is completed
+ * 
+ * @async
+ * @param {number} matchId - Database ID of the match to update
+ * @param {string} newStatus - New match status ('waiting', 'in_progress', 'finished')
+ * @param {number} newGameIndex - Current game index in sequence (0-based)
+ * @param {number|null} [winnerId=null] - Optional winner user ID when match finishes
+ * @returns {Promise<Object>} Database update result
+ * 
+ * @example
+ * // Start match
+ * await updateMatchProgress(456, 'in_progress', 0);
+ * 
+ * // Advance to next game
+ * await updateMatchProgress(456, 'in_progress', 1);
+ * 
+ * // Finish match with winner
+ * await updateMatchProgress(456, 'finished', 2, 123);
+ * 
+ * @throws {Error} 'Match not found or no changes made' if match ID doesn't exist
+ * @throws {Error} Database connection or query errors
  */
 const updateMatchProgress = (matchId, newStatus, newGameIndex, winnerId = null) => new Promise((resolve, reject) => {
     console.log(`Model: Updating match ${matchId} to status '${newStatus}', game index ${newGameIndex}`);
+    
     let sql = `
         UPDATE matches
         SET status = ?, current_game_number = ?
@@ -251,7 +392,6 @@ const updateMatchProgress = (matchId, newStatus, newGameIndex, winnerId = null) 
     sql += ` WHERE id = ?`; // Add WHERE clause at the end
     params.push(matchId);
 
-
     db.query(sql, params, (err, result) => {
         if (err) {
             console.error('Database error updating match progress:', err);
@@ -264,6 +404,9 @@ const updateMatchProgress = (matchId, newStatus, newGameIndex, winnerId = null) 
     });
 });
 
+// ============================================================================
+// MODULE EXPORTS
+// ============================================================================
 
 module.exports = {
     createMatch,

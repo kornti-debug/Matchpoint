@@ -1,93 +1,274 @@
-# CCL2_cc241070
+# 🎮 Matchpoint - Real-Time Game Show Platform
+
+[![Node.js](https://img.shields.io/badge/Node.js-16+-green.svg)](https://nodejs.org/)
+[![React](https://img.shields.io/badge/React-19.1.0-blue.svg)](https://reactjs.org/)
+[![MySQL](https://img.shields.io/badge/MySQL-8.0+-orange.svg)](https://www.mysql.com/)
+[![Socket.IO](https://img.shields.io/badge/Socket.IO-4.8.1-yellow.svg)](https://socket.io/)
+
+A modern, real-time multiplayer game show platform inspired by Kahoot and TV game shows like "Schlag den Raab". Create matches, join with friends, and compete in various mini-games with live scoreboards and instant updates.
+
+## ✨ Features
+
+### 🎯 Core Functionality
+- **Real-time multiplayer gaming** with Socket.IO
+- **Live scoreboards** and instant updates
+- **Room-based match system** with unique 4-digit codes
+- **Host and player roles** with different interfaces
+- **Game sequence management** - multiple games per match
+- **JWT-based authentication** with secure user management
+
+### 🎮 Game Features
+- **IRL Mini-Games** - Physical games that can be played in person
+- **Real-time synchronization** - All players see updates instantly
+- **Score tracking** - Automatic point calculation and leaderboards
+- **Match progression** - Seamless transitions between games
+- **Final results** - Winner determination and match summaries
+
+### 🛠 Technical Features
+- **Responsive design** - Works on desktop and mobile
+- **Cross-platform compatibility** - Accessible from any device on the network
+- **Connection pooling** - Robust database handling
+- **Error handling** - Graceful error recovery and user feedback
+- **Environment configuration** - Easy setup for different deployments
+
+## 🖼 Screenshots
+
+   ![Landing Page](docs/screenshots/matchpoint_homepage.png)
+   ![Dashboard](docs/screenshots/matchpoint_dashboard.png)
 
 
+### Main Interface
+- Dashboard with match creation and joining
+- Host lobby with real-time player list
+- Player lobby with join status
+- Game interface with instructions
+- Live scoreboard with rankings
+- Final results page
 
-## Getting started
+## 🚀 Quick Start
 
-To make it easy for you to get started with GitLab, here's a list of recommended next steps.
+### Prerequisites
+- **Node.js** (v16 or higher)
+- **MySQL** (v8.0 or higher)
+- **Git**
 
-Already a pro? Just edit this README.md and make it your own. Want to make it easy? [Use the template at the bottom](#editing-this-readme)!
+### Installation
 
-## Add your files
+1. **Clone the repository**
+   ```bash
+   git clone <your-repo-url>
+   cd SS2025_CCL_cc241070
+   ```
 
-- [ ] [Create](https://docs.gitlab.com/ee/user/project/repository/web_editor.html#create-a-file) or [upload](https://docs.gitlab.com/ee/user/project/repository/web_editor.html#upload-a-file) files
-- [ ] [Add files using the command line](https://docs.gitlab.com/topics/git/add_files/#add-files-to-a-git-repository) or push an existing Git repository with the following command:
+2. **Install dependencies**
+   ```bash
+   # Backend dependencies
+   cd backend
+   npm install
+   
+   # Frontend dependencies
+   cd ../frontend
+   npm install
+   ```
 
+3. **Database setup**
+   ```bash
+   # Create MySQL database and user
+   mysql -u root -p
+   CREATE DATABASE matchpoint_db;
+   CREATE USER 'matchpoint_user'@'localhost' IDENTIFIED BY 'your_password';
+   GRANT ALL PRIVILEGES ON matchpoint_db.* TO 'matchpoint_user'@'localhost';
+   FLUSH PRIVILEGES;
+   EXIT;
+   ```
+
+4. **Environment configuration**
+
+   **Backend** (create `backend/.env`):
+   ```env
+   NODE_ENV=development
+   PORT=3000
+   DB_USERNAME=matchpoint_user
+   DB_PASSWORD=your_password
+   DB_NAME=matchpoint_db
+   ACCESS_TOKEN_SECRET=your_super_secret_jwt_key_here
+   FRONTEND_URL=http://localhost:5173
+   ```
+
+   **Frontend** (create `frontend/.env`):
+   ```env
+   VITE_API_URL=http://localhost:3000
+   VITE_SOCKET_SERVER_URL=http://localhost:3000
+   ```
+
+5. **Start the application**
+   ```bash
+   # Terminal 1: Backend
+   cd backend
+   npm start
+   
+   # Terminal 2: Frontend
+   cd frontend
+   npm run dev
+   ```
+
+6. **Access the application**
+   - Frontend: http://localhost:5173
+   - Backend API: http://localhost:3000
+
+## 🎯 Usage
+
+### Creating a Match
+1. **Register/Login** to your account
+2. **Click "Create New Match"** on the dashboard
+3. **Enter match name** and select games for the sequence
+4. **Share the room code** with players (e.g., "1234")
+
+### Joining a Match
+1. **Enter the room code** on the dashboard
+2. **Click "Join Match"** to enter the lobby
+3. **Wait for the host** to start the game
+
+### Hosting a Game
+1. **Monitor the lobby** for joining players
+2. **Click "Start Match"** when ready
+3. **Follow game instructions** and award points
+4. **Advance through games** until completion
+
+## 🏗 Architecture
+
+### Frontend
+- **React 19** with modern hooks and functional components
+- **Vite** for fast development and building
+- **Tailwind CSS** for responsive styling
+- **Socket.IO Client** for real-time communication
+- **React Router** for navigation
+
+### Backend
+- **Node.js** with Express.js framework
+- **Socket.IO** for real-time bidirectional communication
+- **MySQL** database with connection pooling
+- **JWT** for secure authentication
+- **Bcrypt** for password hashing
+
+### Real-time Features
+- **Live player updates** - See who joins/leaves instantly
+- **Score synchronization** - All players see score changes
+- **Game state management** - Synchronized game progression
+- **Match status updates** - Real-time match state changes
+
+## 🔧 Configuration
+
+### Environment Variables
+See `ENVIRONMENT_SETUP.md` for detailed configuration options.
+
+### Network Access
+To access from other devices on your network:
+1. Find your IP address (`ipconfig` on Windows)
+2. Update environment variables with your IP
+3. Restart both servers
+
+### Production Deployment
+- Set `NODE_ENV=production`
+- Use HTTPS URLs
+- Configure proper domain names
+- Set up production database
+- Use environment-specific secrets
+
+## 🛠 Development
+
+### Project Structure
 ```
-cd existing_repo
-git remote add origin https://git.nwt.fhstp.ac.at/cc241070/ccl2_cc241070.git
-git branch -M main
-git push -uf origin main
+SS2025_CCL_cc241070/
+├── backend/                 # Node.js/Express server
+│   ├── controllers/        # Request handlers
+│   ├── models/            # Database models
+│   ├── routes/            # API routes
+│   ├── services/          # Business logic
+│   └── server.js          # Main server file
+├── frontend/              # React application
+│   ├── src/
+│   │   ├── components/    # React components
+│   │   ├── services/      # API and Socket.IO clients
+│   │   └── assets/        # Images and static files
+│   └── vite.config.js     # Vite configuration
+└── docs/                  # Documentation and screenshots
 ```
 
-## Integrate with your tools
+### Available Scripts
+```bash
+# Backend
+npm start          # Start production server
+npm run dev        # Start development server with nodemon
 
-- [ ] [Set up project integrations](https://git.nwt.fhstp.ac.at/cc241070/ccl2_cc241070/-/settings/integrations)
+# Frontend
+npm run dev        # Start development server
+npm run build      # Build for production
+npm run preview    # Preview production build
+```
 
-## Collaborate with your team
+## 🐛 Troubleshooting
 
-- [ ] [Invite team members and collaborators](https://docs.gitlab.com/ee/user/project/members/)
-- [ ] [Create a new merge request](https://docs.gitlab.com/ee/user/project/merge_requests/creating_merge_requests.html)
-- [ ] [Automatically close issues from merge requests](https://docs.gitlab.com/ee/user/project/issues/managing_issues.html#closing-issues-automatically)
-- [ ] [Enable merge request approvals](https://docs.gitlab.com/ee/user/project/merge_requests/approvals/)
-- [ ] [Set auto-merge](https://docs.gitlab.com/user/project/merge_requests/auto_merge/)
+### Common Issues
+1. **Database connection failed** - Check MySQL service and credentials
+2. **CORS errors** - Verify FRONTEND_URL in backend/.env
+3. **Socket.IO not working** - Check VITE_SOCKET_SERVER_URL in frontend/.env
+4. **Port already in use** - Change PORT in backend/.env
 
-## Test and Deploy
+### Testing
+1. Register a new user
+2. Create a match
+3. Join from another browser/device
+4. Verify real-time updates work
 
-Use the built-in continuous integration in GitLab.
+## 🚧 Roadmap
 
-- [ ] [Get started with GitLab CI/CD](https://docs.gitlab.com/ee/ci/quick_start/)
-- [ ] [Analyze your code for known vulnerabilities with Static Application Security Testing (SAST)](https://docs.gitlab.com/ee/user/application_security/sast/)
-- [ ] [Deploy to Kubernetes, Amazon EC2, or Amazon ECS using Auto Deploy](https://docs.gitlab.com/ee/topics/autodevops/requirements.html)
-- [ ] [Use pull-based deployments for improved Kubernetes management](https://docs.gitlab.com/ee/user/clusters/agent/)
-- [ ] [Set up protected environments](https://docs.gitlab.com/ee/ci/environments/protected_environments.html)
+### Planned Features
+- [ ] **Team-based games** - Players can form teams
+- [ ] **Digital mini-games** - Kahoot-style quiz games
+- [ ] **Game categories** - Sport, logic, puzzle, etc.
+- [ ] **Equipment filtering** - Games based on available equipment
+- [ ] **Local mode** - Host can also play as player
+- [ ] **Game customization** - Custom rules and scoring
+- [ ] **Statistics tracking** - Player and match history
+- [ ] **Mobile optimization** - Better mobile experience
 
-***
+### Technical Improvements
+- [ ] **TypeScript migration** - Better type safety
+- [ ] **Unit tests** - Comprehensive test coverage
+- [ ] **API documentation** - OpenAPI/Swagger docs
+- [ ] **Performance optimization** - Better caching and optimization
+- [ ] **Security enhancements** - Rate limiting, input validation
 
-# Editing this README
+## 👥 Contributing
 
-When you're ready to make this README your own, just edit this file and use the handy template below (or feel free to structure it however you want - this is just a starting point!). Thanks to [makeareadme.com](https://www.makeareadme.com/) for this template.
+This is a student project, but contributions and suggestions are welcome!
 
-## Suggestions for a good README
+### Development Setup
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Test thoroughly
+5. Submit a pull request
 
-Every project is different, so consider which of these sections apply to yours. The sections used in the template are suggestions for most open source projects. Also keep in mind that while a README can be too long and detailed, too long is better than too short. If you think your README is too long, consider utilizing another form of documentation rather than cutting out information.
+### Code Quality
+- Follow existing code style
+- Add comments for complex logic
+- Test your changes
+- Update documentation if needed
 
-## Name
-Choose a self-explaining name for your project.
+## 📄 License
 
-## Description
-Let people know what your project can do specifically. Provide context and add a link to any reference visitors might be unfamiliar with. A list of Features or a Background subsection can also be added here. If there are alternatives to your project, this is a good place to list differentiating factors.
+This project is created for educational purposes as part of the CCL2 course.
 
-## Badges
-On some READMEs, you may see small images that convey metadata, such as whether or not all the tests are passing for the project. You can use Shields to add some to your README. Many services also have instructions for adding a badge.
+## 👨‍💻 Author
 
-## Visuals
-Depending on what you are making, it can be a good idea to include screenshots or even a video (you'll frequently see GIFs rather than actual videos). Tools like ttygif can help, but check out Asciinema for a more sophisticated method.
+**cc241070** - Student at FH St. Pölten
 
-## Installation
-Within a particular ecosystem, there may be a common way of installing things, such as using Yarn, NuGet, or Homebrew. However, consider the possibility that whoever is reading your README is a novice and would like more guidance. Listing specific steps helps remove ambiguity and gets people to using your project as quickly as possible. If it only runs in a specific context like a particular programming language version or operating system or has dependencies that have to be installed manually, also add a Requirements subsection.
+## 📊 Project Status
 
-## Usage
-Use examples liberally, and show the expected output if you can. It's helpful to have inline the smallest example of usage that you can demonstrate, while providing links to more sophisticated examples if they are too long to reasonably include in the README.
+**Active Development** - This project is actively being developed and improved. New features are being added regularly.
 
-## Support
-Tell people where they can go to for help. It can be any combination of an issue tracker, a chat room, an email address, etc.
+---
 
-## Roadmap
-If you have ideas for releases in the future, it is a good idea to list them in the README.
-
-## Contributing
-State if you are open to contributions and what your requirements are for accepting them.
-
-For people who want to make changes to your project, it's helpful to have some documentation on how to get started. Perhaps there is a script that they should run or some environment variables that they need to set. Make these steps explicit. These instructions could also be useful to your future self.
-
-You can also document commands to lint the code or run tests. These steps help to ensure high code quality and reduce the likelihood that the changes inadvertently break something. Having instructions for running tests is especially helpful if it requires external setup, such as starting a Selenium server for testing in a browser.
-
-## Authors and acknowledgment
-Show your appreciation to those who have contributed to the project.
-
-## License
-For open source projects, say how it is licensed.
-
-## Project status
-If you have run out of energy or time for your project, put a note at the top of the README saying that development has slowed down or stopped completely. Someone may choose to fork your project or volunteer to step in as a maintainer or owner, allowing your project to keep going. You can also make an explicit request for maintainers.
+**Built with ❤️ using React, Node.js, and Socket.IO**

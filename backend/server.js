@@ -1,92 +1,162 @@
+/**
+ * @fileoverview Main server file for Matchpoint - Real-time multiplayer game show platform
+ * @author cc241070
+ * @version 1.0.0
+ * @description Express.js server with Socket.IO integration for real-time gaming
+ */
+
+// ============================================================================
+// IMPORTS AND DEPENDENCIES
+// ============================================================================
+
 const express = require('express');
 const http = require('http'); // Import http module for Socket.IO
 const { Server } = require('socket.io'); // Import Server from socket.io
 const cors = require('cors');
 const app = express();
+
+// ============================================================================
+// ENVIRONMENT CONFIGURATION
+// ============================================================================
+
+// Load environment variables based on NODE_ENV
 require('dotenv').config({
     path: process.env.NODE_ENV === 'production' ? '.env.production' : '.env'
-}); // Load environment variables
+});
 
-console.log('NODE_ENV:', process.env.NODE_ENV);
-console.log('Using PORT:', process.env.PORT);
+// Server configuration
+const SERVER_PORT = process.env.PORT || 3000;
+const NODE_ENV = process.env.NODE_ENV || 'development';
 
-// Default to 3000 if PORT is not defined in any .env file
-const port = process.env.PORT || 3000;
+console.log('Environment:', NODE_ENV);
+console.log('Server Port:', SERVER_PORT);
 
-const bodyParser = require('body-parser');
-const cookieParser = require('cookie-parser');
+// ============================================================================
+// DATABASE AND SERVICES INITIALIZATION
+// ============================================================================
 
+// Initialize database connection with connection pooling
+require('./services/database');
 
-require('./services/database'); // Connect to MySQL database
-
-// Import the socketManager
+// Import Socket.IO manager for real-time communication
 const socketManager = require('./services/socketManager');
 
+// ============================================================================
+// EXPRESS APP SETUP
+// ============================================================================
+
 // Middleware
+const bodyParser = require('body-parser');
+const cookieParser = require('cookie-parser');
 app.use(cookieParser());
 app.use(bodyParser.json()); // Parse JSON request bodies
 app.use(bodyParser.urlencoded({ extended: true })); // Parse form data
 
-const allowedFrontendOrigin = process.env.FRONTEND_URL;
-const corsOptions = {
-    origin: allowedFrontendOrigin, // Allow your frontend URL(s)
+// ============================================================================
+// CORS CONFIGURATION
+// ============================================================================
+
+/**
+ * Configure CORS (Cross-Origin Resource Sharing) for frontend access
+ * Allows requests from localhost and environment-specified frontend URL
+ */
+const FRONTEND_URL_FROM_ENV = process.env.FRONTEND_URL;
+const ALLOWED_ORIGINS = ["http://localhost:5173"]; // Always allow localhost for development
+
+// Add environment-specific frontend URL if different from localhost
+if (FRONTEND_URL_FROM_ENV && FRONTEND_URL_FROM_ENV !== "http://localhost:5173/") {
+    ALLOWED_ORIGINS.push(FRONTEND_URL_FROM_ENV);
+}
+
+const corsConfiguration = {
+    origin: ALLOWED_ORIGINS,
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
     allowedHeaders: ['Content-Type', 'Authorization']
 };
-app.use(cors(corsOptions)); // Apply CORS to Express routes
 
-// Route imports
+console.log('CORS Configuration:', corsConfiguration);
+app.use(cors(corsConfiguration));
+
+// ============================================================================
+// ROUTE IMPORTS
+// ============================================================================
+
+// API route handlers
 const indexRouter = require('./routes/index');
-const usersRouter = require('./routes/users');
 const errorRouter = require('./routes/error');
 const authRouter = require('./routes/auth');
 const matchesRouter = require('./routes/matches');
-const gamesRouter = require('./routes/games'); // Assuming you have a separate games router for /api/games
+const gamesRouter = require('./routes/games');
 
+// ============================================================================
+// MIDDLEWARE IMPORTS
+// ============================================================================
 
-// Middleware imports
 const { errorHandler } = require('./middlewares/error-handler.middleware');
-const { authenticateJWT } = require('./services/authentication'); // Assuming this is your JWT auth middleware
+const { authenticateJWT } = require('./services/authentication');
 
-// --- CRUCIAL CHANGE: Create HTTP server and attach Socket.IO ---
-const httpServer = http.createServer(app); // Create an HTTP server from your Express app
+// ============================================================================
+// SOCKET.IO SETUP
+// ============================================================================
 
-const io = new Server(httpServer, {
-    cors: corsOptions // Apply CORS options to Socket.IO as well
+/**
+ * Create HTTP server and attach Socket.IO for real-time communication
+ * This enables bidirectional communication between clients and server
+ */
+const httpServer = http.createServer(app);
+
+// Initialize Socket.IO server with CORS configuration
+const socketIoServer = new Server(httpServer, {
+    cors: corsConfiguration
 });
 
-// Initialize Socket.IO event listeners via socketManager
-socketManager.initializeSocketIO(io);
+// Initialize Socket.IO event listeners and room management
+socketManager.initializeSocketIO(socketIoServer);
 
-// Make socketManager's broadcast function available to all Express request handlers
-// This is the correct way for controllers to access it: req.app.locals.socketManager.broadcastToRoom
+// Make socketManager's broadcast function available to Express controllers
+// Controllers can access it via: req.app.locals.socketManager.broadcastToRoom
 app.locals.socketManager = {
     broadcastToRoom: socketManager.broadcastToRoom
 };
-// --- END Socket.IO Setup ---
 
+// ============================================================================
+// ROUTE MOUNTING
+// ============================================================================
 
-// Auth routes (login, register) DO NOT require JWT token yet
+// Public routes (no authentication required)
 app.use('/api/auth', authRouter);
 
-// Apply JWT authentication middleware to all subsequent routes (which DO require a token)
-app.use(authenticateJWT); // Ensure this is correctly imported and functional
-
-// Mount other routers to paths
+// Protected routes (require JWT authentication)
+app.use(authenticateJWT);
 app.use('/', indexRouter);
-app.use('/users', usersRouter);
 app.use('/api/matches', matchesRouter);
-app.use('/api/games', gamesRouter); // Mount your games router
+app.use('/api/games', gamesRouter);
 
+// ============================================================================
+// ERROR HANDLING
+// ============================================================================
 
-// Error handling middleware (for thrown or next(err) errors)
+// Global error handling middleware
 app.use(errorHandler);
 app.use(errorRouter); // Catch-all for unhandled routes (404 etc.)
 
+// ============================================================================
+// SERVER STARTUP
+// ============================================================================
 
-// Start the HTTP server (which Socket.IO is now attached to)
-httpServer.listen(port, () => {
-    console.log(`HTTP and Socket.IO Server running on port ${port}`);
-    console.log(`Access backend API at http://localhost:${port}/api`);
+/**
+ * Start the HTTP server with Socket.IO integration
+ * Listens on the configured port and logs server information
+ */
+httpServer.listen(SERVER_PORT, () => {
+    console.log('='.repeat(50));
+    console.log('🎮 Matchpoint Server Started Successfully!');
+    console.log('='.repeat(50));
+    console.log(`🌐 Environment: ${NODE_ENV}`);
+    console.log(`🚀 Server running on port: ${SERVER_PORT}`);
+    console.log(`📡 Backend API: http://localhost:${SERVER_PORT}/api`);
+    console.log(`🔌 Socket.IO: http://localhost:${SERVER_PORT}`);
+    console.log(`🎯 CORS Origins: ${ALLOWED_ORIGINS.join(', ')}`);
+    console.log('='.repeat(50));
 });
