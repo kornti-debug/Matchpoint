@@ -5,14 +5,14 @@
  * @description Handles real-time match state management, game flow, and UI rendering
  */
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useParams } from "react-router-dom";
 import * as apiService from "../services/apiService.js";
 import {
     connectSocket,
-    disconnectSocket,
     onSocketEvent,
-    offSocketEvent
+    offSocketEvent,
+    disconnectSocket
 } from "../services/socketClient.js";
 
 // Import your components
@@ -112,6 +112,18 @@ function MatchController({ isHost }) {
     const [forceShowScoreboard, setForceShowScoreboard] = useState(false);
 
     // ============================================================================
+    // REFS FOR IMMEDIATE STATE ACCESS
+    // ============================================================================
+
+    /** @type {React.MutableRefObject<boolean>} Ref to track forceShowScoreboard for immediate access */
+    const forceShowScoreboardRef = useRef(false);
+
+    // Update ref when state changes
+    useEffect(() => {
+        forceShowScoreboardRef.current = forceShowScoreboard;
+    }, [forceShowScoreboard]);
+
+    // ============================================================================
     // CORE FUNCTIONS
     // ============================================================================
 
@@ -133,14 +145,22 @@ function MatchController({ isHost }) {
             let initialGameData = null;
 
             // --- FORCE SHOW SCOREBOARD OVERRIDE ---
-            if (forceShowScoreboard) {
+            if (forceShowScoreboardRef.current) {
+                console.log('MatchController: forceShowScoreboard is true, showing scoreboard');
                 newPhase = 'scoreboard';
             } else if (matchData?.status === 'waiting') {
                 newPhase = 'lobby';
             } else if (matchData?.status === 'in_progress') {
-                // CRITICAL FIX: If host explicitly set to review scoreboard (via backToScoreboard), maintain that phase.
-                // Otherwise, if backend says 'in_progress' and we are not reviewing, we display the current game.
-                newPhase = isReviewingScoreboard ? 'scoreboard' : 'game';
+                // FIXED: After submitting game results, we should show scoreboard
+                // Check if we just submitted results (forceShowScoreboard is set) or if host is reviewing
+                if (forceShowScoreboardRef.current || isReviewingScoreboard) {
+                    console.log('MatchController: forceShowScoreboard or isReviewingScoreboard is true, showing scoreboard');
+                    newPhase = 'scoreboard';
+                } else {
+                    console.log('MatchController: Neither flag is set, showing game. forceShowScoreboard:', forceShowScoreboardRef.current, 'isReviewingScoreboard:', isReviewingScoreboard);
+                    // Only show game if we're not in a scoreboard state
+                    newPhase = 'game';
+                }
 
                 // Fetch game data only if transitioning to the 'game' phase (i.e., not reviewing scoreboard).
                 if (newPhase === 'game' && Array.isArray(matchData.game_sequence) && matchData.game_sequence.length > matchData.current_game_number && matchData.current_game_number >= 0) {
@@ -195,7 +215,7 @@ function MatchController({ isHost }) {
                 phase: 'error'
             }));
         }
-    }, [roomCode, isReviewingScoreboard, forceShowScoreboard]); // Add forceShowScoreboard as a dependency
+    }, [roomCode, isReviewingScoreboard]);
 
 
     // --- WebSocket Integration useEffect ---
@@ -221,7 +241,7 @@ function MatchController({ isHost }) {
             disconnectSocket(roomCode);
             offSocketEvent('match_event', handleSocketIoMessage);
         };
-    }, [roomCode, handleSocketIoMessage]);
+    }, [roomCode]); // Remove handleSocketIoMessage from dependencies to prevent re-initialization
 
 
     // Initial data fetch on component mount
@@ -310,8 +330,11 @@ function MatchController({ isHost }) {
                 await apiService.nextGame(roomCode, matchState.totalGames, true);
                 setIsReviewingScoreboard(false);
                 setForceShowScoreboard(false);
+                forceShowScoreboardRef.current = false;
             } else {
+                console.log('MatchController: Setting forceShowScoreboard to true for scoreboard transition');
                 setForceShowScoreboard(true);
+                forceShowScoreboardRef.current = true; // Set ref immediately
                 setIsReviewingScoreboard(false);
                 console.log('MatchController: Game results submitted. Will show scoreboard after backend update.');
             }
@@ -419,7 +442,7 @@ function MatchController({ isHost }) {
     if (matchState.error && matchState.phase !== 'error') {
         return (
             <div className="min-h-screen bg-gray-900 text-red-500 flex flex-col items-center justify-center text-xl p-4">
-                <p className="mb-4 font-bold">Error:</p>
+                <p className="mb-4 font-bold">An error occurred during match initialization or phase transition.</p>
                 <p>{matchState.error}</p>
                 <button
                     onClick={fetchMatchDetails}
@@ -438,7 +461,6 @@ function MatchController({ isHost }) {
                 <HostLobby
                     roomCode={roomCode}
                     matchState={matchState}
-                    setMatchState={setMatchState}
                     startMatch={startMatch}
                     updateMatchName={updateMatchNameHandler}
                 />
