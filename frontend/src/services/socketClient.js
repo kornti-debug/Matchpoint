@@ -18,8 +18,8 @@ import { io } from "socket.io-client";
  */
 
 //const SOCKET_SERVER_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:3000";
-//const SOCKET_SERVER_URL = "wss://cc241070-10748.node.fhstp.cc:10748";
-const SOCKET_SERVER_URL = "http://localhost:3000";
+const SOCKET_SERVER_URL = "wss://cc241070-10748.node.fhstp.cc:10748";
+//const SOCKET_SERVER_URL = "http://localhost:3000";
 
 // ============================================================================
 // GLOBAL STATE
