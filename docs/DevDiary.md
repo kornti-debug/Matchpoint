@@ -5,61 +5,61 @@
             - 📌 Notes for tomorrow: need database
 
 
-## Day Nr. 1 - [11.6]
+## Day Nr. 2 - [11.6]
             - ✅ What I worked on today: database. backend (matchcontroller, matchmodel..). api service, 
             - 💡 Biggest learning:request and response, mvc pattern, better understanding
             - ❌ Biggest mistake/blocker: slow progress, many things to consider, so much to learn,...
             - 📌 Notes for tomorrow: need to figure out postman for api-call testing
 
-## Day Nr. 1 - [12.6]
+## Day Nr. 3 - [12.6]
             - ✅ What I worked on today: backend, matchcontroller, model, debugging. JWT response request, understanding jWT better, 
             - 💡 Biggest learning:JWT req.body, postman, how calls work, environment variables, sending bearer token, good for testing
             - ❌ Biggest mistake/blocker: troubleshooting, learning different tools, debugging browser dev tools, postman...
             - 📌 Notes for tomorrow: match components for host and player. starting new game.. backend controller setup.
 
-## Day Nr. 1 - [13.6]
+## Day Nr. 4 - [13.6]
             - ✅ What I worked on today: getMatchname and updatematchname., updated  backend, started with websockets., 
             - 💡 Biggest learning:req params. new route,controller,model implmented, practice. patch request. postman params.
             - ❌ Biggest mistake/blocker: still very slow progress, trying to understand it, need to think about so many things...
             - 📌 Notes for tomorrow: websockets setup. player should show up in room when entering. -> join room functionality.
 
-## Day Nr. 1 - [14.6]
+## Day Nr.5 - [14.6]
             - ✅ What I worked on today: getting userflow on frontend with mockdata. frontend match concept redone. matchcontroller component with lobby, game and scoreboard components.
             - 💡 Biggest learning: proper props distrubution throughout components
             - ❌ Biggest mistake/blocker: websockets not quite doable for me yet. getting userflow done and focus on working frontend.. and afterwards implementing real-time communictaion.
             - 📌 Notes for tomorrow: getting backend ready with game db. and matchresults.
 
-## Day Nr. 1 - [15.6]
+## Day Nr. 5 - [15.6]
             - ✅ What I worked on today: worked on CRUD system for Games. frontend and backend works.
             - 💡 Biggest learning: correctly passing props. still learning how it all works together.. 
             - ❌ Biggest mistake/blocker: need to rethink the userflow and the db. some things need to change. e.g. columns. 
             - 📌 Notes for tomorrow: getting real db data instead of the mockdata for the match.
 
-## Day Nr. 1 - [16.6]
+## Day Nr. 6 - [16.6]
             - ✅ What I worked on today: game_sequence added. dashboard ui changes. several fixes
             - 💡 Biggest learning: debugging with network browser console. getting json through pages/components. ensuring stable and robust views by having everything stored and fetched from db.
             - ❌ Biggest mistake/blocker: long troubleshooting and testing phase since i need 2 sessions to test multiplayer functionality.
             - 📌 Notes for tomorrow: finally tackle websockets and fix some UI/UX stuff.. getting UI also done.
 
-## Day Nr. 1 - [17.6]
+## Day Nr. 7 - [17.6]
             - ✅ What I worked on today: game_sequence added. dashboard ui changes. several fixes
             - 💡 Biggest learning: debugging with network browser console. getting json through pages/components. ensuring stable and robust views by having everything stored and fetched from db.
             - ❌ Biggest mistake/blocker: long troubleshooting and testing phase since i need 2 sessions to test multiplayer functionality.
             - 📌 Notes for tomorrow: finally tackle websockets and fix some UI/UX stuff.. getting UI also done.
 
-## Day Nr. 1 - [18.6]
+## Day Nr. 8 - [18.6]
             - ✅ Hosting website on Campus cloud. Cors setup modified. managed to host it and sockets.io also worked.
             - 💡 Biggest learning: debugging with campus cloud console. learned how cors actually works, allowing frontend URLs. where to put ports for websockets.
             - ❌ Biggest mistake/blocker: needed to understand the whole behaviour better when trying to host things. testing is tedious when needing FileZilla uploading files, restarting,...
             - 📌 Notes for tomorrow: want to add .env.production variabales so the project works locally and when hosting, without to hardcode links and ports.
 
-## Day Nr. 1 - [19.6]
+## Day Nr. 9 - [19.6]
             - ✅ What I worked on today: setting up .env.production variables for production variables when hosting. unfortunately didn't work.. campus cloud didn't set NODE_ENV varibales as it seems. (at least that was my understanding). also set up dist folder for frontend and little server to serve the html files. for frontend it works with the env.production variables. no need to change URLs hardcoded anymore.
             - 💡 Biggest learning: there is a way to seperate also the hosting and locally working place, so you dont need to hardcode things and then change it again (but with campus cloud it doesn't work as intended). npm run build to serve html files for frontend
             - ❌ Biggest mistake/blocker: .env.production variables for backend arent working.
             - 📌 Notes for tomorrow: troubleshoot the mobile phone join problem again.
 
-## Day Nr. 1 - [20.6]
+## Day Nr. 10 - [20.6]
             - ✅ What I worked on today: troubleshooting way joining via smartphone dont send data in realtime to hostlobby. -> problem was the room code which i needed to set to normalize.(with smartphones you enter the code lowercase. when copying the code between browsers on the pc its uppercase). i decided to go for only numbers for now
             - 💡 Biggest learning: smartphone debugging console with usb debugging. pretty useful. destructuring variables.
             - ❌ Biggest mistake/blocker: when not having all debugging information you dont really know where to look at. smartphone logs definitly helped.

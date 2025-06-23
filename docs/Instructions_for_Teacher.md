@@ -53,6 +53,8 @@ PORT = 3000
 
 ---
 
+VISIT http://localhost:5173 
+
 ### 🔑 2. Credentials
 
 #### Database Access (if applicable):
