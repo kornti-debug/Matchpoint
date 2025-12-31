@@ -7,6 +7,13 @@
 
 A modern, real-time multiplayer game show platform inspired by Kahoot and TV game shows like "Schlag den Raab". Create matches, join with friends, and compete in various mini-games with live scoreboards and instant updates.
 
+---
+
+## 🌐 **Link to my page**
+[Click here to visit the app!](https://cc241070-10749.node.fhstp.cc/)
+
+---
+
 ## ✨ Features
 
 ### 🎯 Core Functionality
@@ -31,10 +38,14 @@ A modern, real-time multiplayer game show platform inspired by Kahoot and TV gam
 - **Error handling** - Graceful error recovery and user feedback
 - **Environment configuration** - Easy setup for different deployments
 
-## 🖼 Screenshots
+## 📸 Screenshots
+| Homepage | Dashboard | Games | Hostlobby
+|:---:|:---:|:---:|:---:|
+| <img src="docs/screenshots/matchpoint_homepage.png" width="400"/> | <img src="docs/screenshots/matchpoint_dashboard.png.png" width="400"/> | <img src="docs/screenshots/matchpoint_games.png" width="400"/> | <img src="docs/screenshots/matchpoint_hostlobby.png" width="400"/>
 
-   ![Landing Page](docs/screenshots/matchpoint_homepage.png)
-   ![Dashboard](docs/screenshots/matchpoint_dashboard.png)
+ | Game View | Scoreboard | Player View | Winner
+|:---:|:---:|:---:|
+| <img src="docs/screenshots/brainmon_gameview.png" width="400"/> | <img src="docs/screenshots/matchpoint_scoreboard" width="400"/> | <img src="docs/screenshots/matchpoint_playerview" width="400"/> | <img src="docs/screenshots/matchpoint_winner" width="400"/>
 
 
 ### Main Interface
@@ -206,69 +217,3 @@ npm run dev        # Start development server
 npm run build      # Build for production
 npm run preview    # Preview production build
 ```
-
-## 🐛 Troubleshooting
-
-### Common Issues
-1. **Database connection failed** - Check MySQL service and credentials
-2. **CORS errors** - Verify FRONTEND_URL in backend/.env
-3. **Socket.IO not working** - Check VITE_SOCKET_SERVER_URL in frontend/.env
-4. **Port already in use** - Change PORT in backend/.env
-
-### Testing
-1. Register a new user
-2. Create a match
-3. Join from another browser/device
-4. Verify real-time updates work
-
-## 🚧 Roadmap
-
-### Planned Features
-- [ ] **Team-based games** - Players can form teams
-- [ ] **Digital mini-games** - Kahoot-style quiz games
-- [ ] **Game categories** - Sport, logic, puzzle, etc.
-- [ ] **Equipment filtering** - Games based on available equipment
-- [ ] **Local mode** - Host can also play as player
-- [ ] **Game customization** - Custom rules and scoring
-- [ ] **Statistics tracking** - Player and match history
-- [ ] **Mobile optimization** - Better mobile experience
-
-### Technical Improvements
-- [ ] **TypeScript migration** - Better type safety
-- [ ] **Unit tests** - Comprehensive test coverage
-- [ ] **API documentation** - OpenAPI/Swagger docs
-- [ ] **Performance optimization** - Better caching and optimization
-- [ ] **Security enhancements** - Rate limiting, input validation
-
-## 👥 Contributing
-
-This is a student project, but contributions and suggestions are welcome!
-
-### Development Setup
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Test thoroughly
-5. Submit a pull request
-
-### Code Quality
-- Follow existing code style
-- Add comments for complex logic
-- Test your changes
-- Update documentation if needed
-
-## 📄 License
-
-This project is created for educational purposes as part of the CCL2 course.
-
-## 👨‍💻 Author
-
-**cc241070** - Student at FH St. Pölten
-
-## 📊 Project Status
-
-**Active Development** - This project is actively being developed and improved. New features are being added regularly.
-
----
-
-**Built with ❤️ using React, Node.js, and Socket.IO**
