@@ -15,13 +15,17 @@ A modern, real-time multiplayer game show platform inspired by Kahoot and TV gam
 ---
 
 ## 📸 Screenshots
-| Homepage | Dashboard | Games | Hostlobby
-|:---:|:---:|:---:|:---:|
-| <img src="docs/screenshots/matchpoint_homepage.png" width="400"/> | <img src="docs/screenshots/matchpoint_dashboard.png" width="400"/> | <img src="docs/screenshots/matchpoint_games.png" width="400"/> | <img src="docs/screenshots/matchpoint_hostlobby.png" width="400"/>
+| Homepage | Dashboard | Games 
+|:---:|:---:|:---:|
+| <img src="docs/screenshots/matchpoint_homepage.png" width="600"/> | <img src="docs/screenshots/matchpoint_dashboard.png" width="600"/> | <img src="docs/screenshots/matchpoint_games.png" width="600"/> 
 
-| Game View | Scoreboard | Player View | Winner
-|:---:|:---:|:---:|:---:|
-| <img src="docs/screenshots/brainmon_gameview.png" width="400"/> | <img src="docs/screenshots/matchpoint_scoreboard" width="400"/> | <img src="docs/screenshots/matchpoint_playerview" width="400"/> | <img src="docs/screenshots/matchpoint_winner" width="400"/>
+| Hostlobby | Game View | Scoreboard
+|:---:|:---:|:---:|
+| <img src="docs/screenshots/matchpoint_hostlobby.png" width="600"/>| <img src="docs/screenshots/brainmon_gameview.png" width="600"/> | <img src="docs/screenshots/matchpoint_scoreboard.png" width="600"/> 
+
+| Player View | Winner
+|:---:|:---:|
+| <img src="docs/screenshots/matchpoint_playerview.png" width="600"/> | <img src="docs/screenshots/matchpoint_winner.png" width="600"/>
 
 ## ✨ Features
 
