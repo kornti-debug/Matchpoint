@@ -14,6 +14,15 @@ A modern, real-time multiplayer game show platform inspired by Kahoot and TV gam
 
 ---
 
+## 📸 Screenshots
+| Homepage | Dashboard | Games | Hostlobby
+|:---:|:---:|:---:|:---:|
+| <img src="docs/screenshots/matchpoint_homepage.png" width="400"/> | <img src="docs/screenshots/matchpoint_dashboard.png" width="400"/> | <img src="docs/screenshots/matchpoint_games.png" width="400"/> | <img src="docs/screenshots/matchpoint_hostlobby.png" width="400"/>
+
+| Game View | Scoreboard | Player View | Winner
+|:---:|:---:|:---:|:---:|
+| <img src="docs/screenshots/brainmon_gameview.png" width="400"/> | <img src="docs/screenshots/matchpoint_scoreboard" width="400"/> | <img src="docs/screenshots/matchpoint_playerview" width="400"/> | <img src="docs/screenshots/matchpoint_winner" width="400"/>
+
 ## ✨ Features
 
 ### 🎯 Core Functionality
@@ -37,16 +46,6 @@ A modern, real-time multiplayer game show platform inspired by Kahoot and TV gam
 - **Connection pooling** - Robust database handling
 - **Error handling** - Graceful error recovery and user feedback
 - **Environment configuration** - Easy setup for different deployments
-
-## 📸 Screenshots
-| Homepage | Dashboard | Games | Hostlobby
-|:---:|:---:|:---:|:---:|
-| <img src="docs/screenshots/matchpoint_homepage.png" width="400"/> | <img src="docs/screenshots/matchpoint_dashboard.png.png" width="400"/> | <img src="docs/screenshots/matchpoint_games.png" width="400"/> | <img src="docs/screenshots/matchpoint_hostlobby.png" width="400"/>
-
- | Game View | Scoreboard | Player View | Winner
-|:---:|:---:|:---:|
-| <img src="docs/screenshots/brainmon_gameview.png" width="400"/> | <img src="docs/screenshots/matchpoint_scoreboard" width="400"/> | <img src="docs/screenshots/matchpoint_playerview" width="400"/> | <img src="docs/screenshots/matchpoint_winner" width="400"/>
-
 
 ### Main Interface
 - Dashboard with match creation and joining
