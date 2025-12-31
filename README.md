@@ -15,17 +15,13 @@ A modern, real-time multiplayer game show platform inspired by Kahoot and TV gam
 ---
 
 ## 📸 Screenshots
-| Homepage | Dashboard | Games 
-|:---:|:---:|:---:|
-| <img src="docs/screenshots/matchpoint_homepage.png" width="600"/> | <img src="docs/screenshots/matchpoint_dashboard.png" width="600"/> | <img src="docs/screenshots/matchpoint_games.png" width="600"/> 
-
-| Hostlobby | Game View | Scoreboard
-|:---:|:---:|:---:|
-| <img src="docs/screenshots/matchpoint_hostlobby.png" width="600"/>| <img src="docs/screenshots/brainmon_gameview.png" width="600"/> | <img src="docs/screenshots/matchpoint_scoreboard.png" width="600"/> 
-
-| Player View | Winner
+| Dashboard | Games 
 |:---:|:---:|
-| <img src="docs/screenshots/matchpoint_playerview.png" width="600"/> | <img src="docs/screenshots/matchpoint_winner.png" width="600"/>
+| <img src="docs/screenshots/matchpoint_dashboard.png" width="600"/> | <img src="docs/screenshots/matchpoint_games.png" width="600"/> 
+
+| Hostlobby | Game View 
+|:---:|:---:|
+| <img src="docs/screenshots/matchpoint_hostlobby.png" width="600"/>| <img src="docs/screenshots/matchpoint_gameview.png" width="600"/>
 
 ## ✨ Features
 
